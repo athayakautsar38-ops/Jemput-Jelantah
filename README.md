@@ -1,4 +1,3 @@
-````markdown
 # Jemput Jelantah
 
 ### Evidence-driven UCO collection and route aggregation MVP
@@ -413,16 +412,3 @@ The current focus is validating whether supplier density and area-based aggregat
 > **Build the route from the supply, not the other way around.**
 
 Jemput Jelantah is designed to test whether fragmented UCO supply can be consolidated into sufficiently dense pickup routes before scaling the operation geographically.
-
-```
-
-### Setelah paste ke GitHub
-
-**Jangan langsung bikin semua folder satu-satu dulu.** Kita pakai urutan yang lebih rapi:
-
-**README → CHANGELOG → LICENSE → docs → AI → source → tests → assets**
-
-Dan satu hal penting: README di atas **sengaja tidak memasukkan angka dummy 23L → 31.5L sebagai hasil eksperimen aktual**, karena itu akan melemahkan credibility repo kalau mentor melakukan audit evidence.
-
-**Next: `CHANGELOG.md`** — kita bikin supaya kelihatan jelas bagaimana MVP berkembang dari foundation → aggregation → tracking → weighing/payout → validation.
-```
