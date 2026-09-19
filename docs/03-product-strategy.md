@@ -2,550 +2,546 @@
 
 ## 1. Strategy Overview
 
-Jemput Jelantah is designed to test whether fragmented used cooking oil (UCO) supply from households and culinary micro-UMKM can be consolidated into sufficiently dense pickup routes before expanding geographically.
+Jemput Jelantah is positioned as a **scheduled UCO aggregation and pickup platform** that consolidates fragmented used cooking oil (UCO) supply from culinary micro-UMKM and households before pickup routes are dispatched.
 
-The strategy focuses on solving the operational challenge behind collection: individual suppliers may contribute limited and inconsistent volumes, while dispersed pickup requests can reduce route utilization.
+The product strategy is built around:
 
-The initial strategy therefore combines:
+> **Fragmented Supply → Aggregated Volume → Route Efficiency → Verified Payout**
 
-**Micro-UMKM as Potential Route Anchors**
-
-*
-
-**Nearby Households as Route Densifiers**
-
-*
-
-**Scheduled Area-Based Pickup**
-
-*
-
-**Transparent Weighing and Payout**
+The initial strategy focuses on validating route density within a limited pilot area before considering geographic expansion.
 
 ---
 
-## 2. Product Vision
+## 2. Target Market
 
-Build a collection layer that makes fragmented UCO supply easier to aggregate, schedule, track, and transact.
+### Primary Target: Culinary Micro-UMKM
 
-The long-term opportunity is to create a more predictable supply aggregation system before expanding collection coverage.
+Culinary micro-UMKM are considered potential **route anchors** because they may generate higher and more recurring UCO volumes than individual households.
 
----
+Current research included **15 survey respondents**, consisting of:
 
-## 3. Strategic Problem
+* 5 culinary micro-UMKM
+* 10 households
 
-The core strategic problem is not simply the absence of UCO pickup.
+Among the 5 UMKM respondents:
 
-Existing collection alternatives already provide pickup or collection mechanisms in some markets.
+* 2 reported approximately 6–10L of UCO per week
+* 1 reported more than 10L per week
+* 1 reported approximately 4–5L per week
+* 1 did not know their weekly volume
 
-The strategic opportunity for Jemput Jelantah is to test whether a more localized aggregation model can improve route density by combining different supplier types within the same pickup area.
+This suggests that culinary micro-UMKM may provide a relatively larger supply contribution within the current sample.
 
-The working problem statement is:
-
-> How might we aggregate fragmented UCO supply from households and culinary micro-UMKM into sufficiently dense pickup routes while maintaining a convenient and transparent supplier experience?
-
----
-
-## 4. Target Market
-
-### 4.1 Initial Market
-
-**Geographic focus:**
-
-Jember, East Java
-
-The initial market is intentionally narrow so that route density and operating assumptions can be validated before geographic expansion.
-
-### 4.2 Primary Supplier Segments
-
-#### Culinary Micro-UMKM
-
-Role:
-
-**Potential Route Anchor**
-
-Reasoning:
-
-The current research sample showed higher individual UCO volume potential among culinary micro-UMKM than households.
-
-This does not establish that all culinary micro-UMKM generate higher volumes. It is an initial segment hypothesis that should be validated through actual collection data.
-
-Potential needs:
-
-* Convenient pickup
-* Clear selling price
-* Predictable collection schedule
-* Transparent weighing
-* Reliable payout
-
-#### Households
-
-Role:
-
-**Potential Route Densifier**
-
-Reasoning:
-
-Household contributions in the current survey were generally smaller than those reported by culinary micro-UMKM.
-
-Instead of treating each household as an independent pickup destination, nearby households can potentially be grouped around existing route anchors.
-
-Potential needs:
-
-* Simple collection request
-* No need to find a buyer independently
-* Scheduled pickup
-* Clear price
-* Transparent transaction
+> **Evidence status: ACTUAL research data, but directional due to the small sample size.**
 
 ---
 
-## 5. Segment Selection Logic
+### Secondary Target: Households
 
-The initial segment strategy is based on operational role rather than only demographic characteristics.
+Households are positioned as potential **route densifiers** rather than the primary volume anchor.
 
-| Segment             | Current Research Signal                              | Potential Operational Role | Initial Strategy                             |
-| ------------------- | ---------------------------------------------------- | -------------------------- | -------------------------------------------- |
-| Culinary micro-UMKM | Higher individual volume potential in current sample | Route anchor               | Prioritize as initial route anchor candidate |
-| Households          | Smaller individual contribution in current sample    | Route densifier            | Recruit around existing route anchors        |
+The current survey indicates that households may have smaller individual UCO volumes, but multiple nearby households could contribute additional volume to an existing route.
 
-The strategy does not exclude either segment.
+This creates the following working model:
 
-Instead, the two segments are designed to work together within the same route.
+**Micro-UMKM Anchor + Nearby Household Suppliers → Higher Route Density**
 
----
+This remains a hypothesis that requires operational validation.
 
-## 6. Target Market Prioritization
-
-### Primary Entry Segment
-
-**Culinary micro-UMKM located in target pickup areas**
-
-Why:
-
-1. Potentially higher individual contribution.
-2. More likely to generate UCO through recurring culinary activity.
-3. Can provide an initial volume base for route aggregation.
-4. Can serve as an anchor around which nearby household suppliers are recruited.
-
-### Secondary Expansion Within Route
-
-**Nearby households around existing micro-UMKM anchors**
-
-Why:
-
-1. Individual household contribution may be smaller.
-2. Geographic proximity can allow incremental volume to be collected within the same route.
-3. Household densification can be tested before expanding into a new geographic area.
+> **Evidence status: HYPOTHESIS based on current research; not yet validated through a real pickup operation.**
 
 ---
 
-## 7. Positioning
+## 3. Geographic Strategy
 
-### Category
+### Initial Pilot
 
-Scheduled UCO collection and aggregation platform.
+**Jember, East Java**
+
+The MVP is designed for an initial localized pilot rather than immediate city-wide or province-wide expansion.
+
+The pilot should focus on geographically concentrated supplier areas to test whether aggregation can produce sufficiently dense routes.
+
+Example areas used in the MVP:
+
+* Patrang
+* Sumbersari
+* Kaliwates
+* Ajung
+
+These areas are currently used as **product and MVP examples**, not as evidence that each area has sufficient UCO supply.
+
+> **Evidence status: ASSUMPTION / MVP configuration.**
+
+---
+
+## 4. Positioning
 
 ### Positioning Statement
 
-> Jemput Jelantah is a scheduled UCO aggregation and pickup service for households and culinary micro-UMKM that consolidates nearby suppliers into area-based collection routes, with visible collection progress and transparent weighing and payout.
+> **Jemput Jelantah helps households and culinary micro-UMKM turn fragmented used cooking oil into organized, scheduled pickups by aggregating nearby suppliers into denser routes with transparent weighing and payout.**
 
-### Short Positioning
+### Product Differentiation
 
-**Scheduled UCO aggregation for denser local pickup routes.**
+The product does not primarily compete on simply "picking up used cooking oil."
 
-The positioning deliberately emphasizes aggregation and route structure rather than claiming that pickup itself is unique.
+Its core differentiation is the **aggregation layer before pickup**.
+
+| Traditional Collection                      | Jemput Jelantah                                |
+| ------------------------------------------- | ---------------------------------------------- |
+| Individual pickup requests                  | Aggregated area-based collection               |
+| Pickup may depend on collector availability | Scheduled pickup windows                       |
+| Supplier may not know route status          | Collection progress visibility                 |
+| Price may be unclear                        | Payout/L shown before/after weighing           |
+| Volume fragmented across suppliers          | Multiple suppliers consolidated into one route |
+
+The differentiation is therefore centered on:
+
+**Aggregation + Scheduling + Transparency**
 
 ---
 
-## 8. Value Proposition
+## 5. Value Proposition
 
 ### For Culinary Micro-UMKM
 
-**Turn recurring UCO into a convenient, transparent collection process.**
+**Problem**
 
-Value delivered:
+UMKM may generate recurring UCO but have limited visibility into where to sell or hand it over at a clear and convenient process.
 
-* Scheduled pickup
-* Clear pricing reference
-* Transparent weighing
-* Verified payout
-* Potential role as a route anchor
+**Value**
+
+> Turn recurring UCO supply into a scheduled pickup with transparent weighing and payout.
+
+---
 
 ### For Households
 
-**Turn small UCO contributions into a convenient scheduled collection.**
+**Problem**
 
-Value delivered:
+Households may generate small amounts of UCO and may not know where to sell or hand it over.
 
-* No need to independently find a collector
-* Area-based pickup
-* Collection progress visibility
-* Clear price reference
-* Transparent weighing and payout
+**Value**
 
-### Combined Value
+> Contribute small amounts of UCO through nearby scheduled collection instead of handling pickup individually.
 
-The product connects supplier convenience with operational aggregation:
+---
+
+### For Collection Operations
+
+**Problem**
+
+Individual suppliers can create fragmented pickup demand and inefficient routes.
+
+**Value**
+
+> Aggregate nearby suppliers before dispatching a route to improve route utilization.
+
+---
+
+## 6. Core Product Hypothesis
+
+### Primary Hypothesis
+
+> If nearby household suppliers are aggregated around culinary micro-UMKM anchors, total liters per route may increase toward the internal 50L operating threshold without immediately expanding geographic coverage.
+
+### Supporting Hypotheses
 
 **Supplier Convenience**
 
-→
+If suppliers can request scheduled pickup and clearly see pickup status and payout information, participation and repeat contribution may improve.
 
-**Higher Local Supply Density**
+**Operational Efficiency**
 
-→
+If supplier requests are aggregated by area and schedule before dispatch, route utilization may improve compared with handling fragmented requests individually.
 
-**More Structured Pickup Routes**
+**Economic Viability**
 
----
+If route volume increases sufficiently, the collection model may improve contribution economics after supplier payout and route-related variable costs.
 
-## 9. Differentiation Hypothesis
-
-Jemput Jelantah does not claim that UCO pickup, aggregation, or supplier payout are individually unique capabilities.
-
-The differentiation hypothesis is the combination of:
-
-1. Area-based scheduled pickup
-2. Culinary micro-UMKM as potential route anchors
-3. Household densification around those anchors
-4. Route-level volume visibility
-5. Internal route-density validation before geographic expansion
-6. Transparent weighing and payout
-
-The key hypothesis is therefore:
-
-> A localized anchor-and-densify model may create a more operationally manageable collection route than treating every supplier as an independent pickup destination.
-
-This remains a hypothesis until validated through pilot data.
+These hypotheses remain **unvalidated operational hypotheses** until tested using real pickup data.
 
 ---
 
-## 10. Strategic Choices
+## 7. Route Threshold Strategy
 
-### We Will
+### Internal Pilot Operating Threshold: 50L
 
-* Start with a focused Jember pilot.
-* Prioritize dense pickup areas.
-* Test culinary micro-UMKM as potential route anchors.
-* Add nearby households to increase route density.
-* Use scheduled pickup windows.
-* Track estimated and actual collection volume separately.
-* Show collection progress.
-* Record actual weighing before payout.
-* Use an active pricing reference with an effective date.
-* Validate route density before geographic expansion.
+The MVP uses **50L per route as an internal operating threshold**.
 
-### We Will Not
+The threshold is intended to answer:
 
-* Expand geographically before validating the operating model.
-* Claim 50L as an industry standard.
-* Treat survey interest as proof of adoption.
-* Build advanced route optimization in the MVP.
-* Build downstream UCO processing.
-* Build a supplier marketplace.
-* Depend on real-time market pricing for the MVP.
-* Optimize for the number of pickup requests alone.
+> "Can the aggregation model consistently build a route with enough volume to justify operational testing?"
 
----
+It is **not** presented as:
 
-## 11. 50L Operating Threshold
+* an industry benchmark
+* a market standard
+* a proven break-even point
+* an externally validated economic threshold
 
-The MVP uses **50L as an internal pilot operating threshold**.
+The actual pilot should establish the observed baseline and then evaluate route performance against this internal threshold.
 
-The threshold is used to answer a strategic question:
+### Decision Logic
 
-> Can aggregated suppliers within a defined route generate enough volume to justify further testing before geographic expansion?
+**Route volume < 50L**
 
-50L is therefore a **validation threshold**, not:
+→ Continue aggregation
+→ Invite nearby suppliers
+→ Wait for scheduled collection window
 
-* an industry benchmark,
-* a proven break-even point,
-* a universal minimum pickup volume,
-* or a claim about optimal route economics.
+**Route volume ≥ 50L**
 
-The threshold should be revisited after actual route and cost data are available.
+→ Mark route as Ready
+→ Dispatch pickup
+→ Record actual volume
+→ Calculate supplier payout
+→ Evaluate route performance
 
 ---
 
-## 12. Geographic Strategy
+## 8. Market Opportunity
 
-### Phase 1 — Focused Pilot
+Jemput Jelantah operates within the broader used cooking oil collection and recycling ecosystem.
 
-Start within selected areas of Jember.
+However, direct local market-size data for the initial Jember pilot is currently insufficient to support a defensible bottom-up TAM/SAM/SOM calculation.
 
-Priority:
+Therefore, market sizing should not be presented as validated market demand.
 
-**Density before geographic breadth.**
+### Market Sizing Approach
 
-### Phase 2 — Route Densification
+The initial market model should eventually be built using:
 
-Increase supplier density around existing route anchors.
+**TAM**
 
-Primary mechanism:
+Total addressable UCO supply from relevant households and culinary businesses within the broader target geography.
 
-**Micro-UMKM Anchor → Nearby Household Densification**
+**SAM**
 
-### Phase 3 — Geographic Expansion
+The portion of UCO supply that can potentially be served based on geographic coverage, supplier type, and operational constraints.
 
-Expand to additional areas only after the pilot provides sufficient evidence that:
+**SOM**
 
-1. Routes can consistently approach or exceed the internal threshold.
-2. Pickup completion is operationally manageable.
-3. Actual collected volume is reasonably predictable.
-4. Supplier participation is sustainable.
-5. Route economics are acceptable.
+The portion that can realistically be captured based on route density, supplier acquisition, collection capacity, and operational economics.
+
+> **Evidence status: MARKET-SIZING FRAMEWORK. Actual TAM/SAM/SOM requires additional market and operational data.**
 
 ---
 
-## 13. Product Strategy
+## 9. Illustrative Market Sizing
 
-The product strategy follows a validation-first sequence:
+Any market-size numbers used in the MVP or presentation should be explicitly labeled:
 
-### Step 1 — Collect
+> **Illustrative Market Sizing / Proxy**
 
-Allow suppliers to submit pickup requests.
+These numbers are used to demonstrate the commercial model and sizing methodology rather than to claim validated local market demand.
 
-### Step 2 — Schedule
+The final business case should replace these assumptions with validated data from:
 
-Group requests by area and pickup window.
-
-### Step 3 — Aggregate
-
-Track estimated route volume and progress toward the internal threshold.
-
-### Step 4 — Track
-
-Provide visibility into collection and route status.
-
-### Step 5 — Weigh
-
-Record actual collected volume.
-
-### Step 6 — Pay
-
-Calculate supplier payout using actual volume and the active supplier payout reference.
-
-### Step 7 — Validate
-
-Use actual operational data to determine whether the aggregation model should be iterated, expanded, or stopped.
+* local supplier counts
+* average UCO generation
+* collection frequency
+* serviceable geographic radius
+* actual route capacity
+* observed supplier acquisition
+* actual route economics
 
 ---
 
-## 14. Product Goals
+## 10. Commercial Model
 
-### Product-Level Goal
+Jemput Jelantah uses a simple transaction-based model in the MVP:
 
-Validate whether the aggregation model can increase route density while maintaining a transparent supplier experience.
+**Supplier UCO → Collection → Weighing → Supplier Payout → Downstream Buyer**
 
-### Feature-Level Goals
+The commercial model requires three key variables:
 
-* Enable pickup request creation.
-* Enable area-based scheduling.
-* Aggregate estimated supplier volume.
-* Show route progress.
-* Track pickup status.
-* Record actual weighing.
-* Calculate supplier payout.
-* Prevent duplicate weighing transactions.
+1. Reference UCO selling price
+2. Supplier payout per liter
+3. Route-related variable costs
 
-### Business-Level Goals
+### Illustrative Example
 
-* Improve route utilization.
-* Establish recurring supply.
-* Understand route-level economics.
-* Identify conditions required for geographic expansion.
+If:
 
----
+* Actual collected volume = 8L
+* Supplier payout = Rp5,500/L
 
-## 15. Business Model Hypothesis
+Then:
 
-The initial business model is based on the difference between the value generated from collected UCO and the costs required to acquire, collect, verify, and pay suppliers.
+**Supplier payout = 8 × Rp5,500 = Rp44,000**
 
-A simplified route-level model is:
+This example is only used to demonstrate the payout calculation.
 
-**Downstream UCO Value**
-
-−
-
-**Supplier Payout**
-
-−
-
-**Pickup / Route Variable Cost**
-
-=
-
-**Contribution Margin**
-
-The MVP does not assume that positive contribution margin has already been proven.
-
-The pilot is intended to collect the data required to evaluate route-level economics.
+> **Evidence status: ILLUSTRATIVE.**
 
 ---
 
-## 16. Pricing Strategy
+## 11. Pricing Strategy
 
-The supplier-facing transaction should expose:
+The MVP includes a pricing reference layer to make the payout calculation transparent.
 
-1. Pricing reference
-2. Effective date
-3. Actual weighed volume
-4. Supplier payout per liter
-5. Total payout
+The pricing structure separates:
 
-The MVP uses a pricing reference rather than claiming real-time market pricing.
+**Reference Buyer Price/L**
 
-The pricing model should remain configurable because UCO prices can change over time.
+from
+
+**Supplier Payout/L**
+
+and therefore allows the system to calculate an indicative gross spread before operational costs.
+
+### Example MVP Configuration
+
+| Variable                  | Example |
+| ------------------------- | ------: |
+| Reference Buyer Price/L   | Rp7,000 |
+| Supplier Payout/L         | Rp5,500 |
+| Indicative Gross Spread/L | Rp1,500 |
+
+These values are **illustrative commercial assumptions** and should not be interpreted as verified current market prices.
+
+Actual pricing should be validated against:
+
+* buyer quotations
+* collector/dealer prices
+* local UCO market references
+* effective date
+* geographic market
+* UCO quality/specification
 
 ---
 
-## 17. Strategic Metrics
+## 12. Unit Economics Framework
+
+The initial unit economics model is:
+
+**Revenue per Route**
+
+= Actual Collected Volume × Buyer Price/L
+
+**Supplier Payout Cost**
+
+= Actual Collected Volume × Supplier Payout/L
+
+**Contribution Before Other Costs**
+
+= Revenue − Supplier Payout
+
+**Indicative Contribution Margin**
+
+= Contribution Before Other Costs − Route Variable Costs
+
+Potential route variable costs include:
+
+* transportation
+* fuel
+* collection labor
+* weighing/handling
+* other operational costs
+
+The MVP does not yet claim that the model is profitable because real route economics have not been validated.
+
+---
+
+## 13. Strategic Focus
+
+The product will prioritize **route density before geographic expansion**.
+
+### Why?
+
+Expanding coverage before validating route density may increase:
+
+* travel distance
+* operational complexity
+* pickup cost
+* supplier management overhead
+
+The strategic sequence is therefore:
+
+**Validate Density → Validate Route Economics → Validate Repeatability → Expand Geography**
+
+---
+
+## 14. Strategic Metrics
+
+The product strategy focuses on operational quality rather than request volume alone.
 
 ### Primary Metric
 
 **Liters per Route**
 
-Definition:
-
-> Total actual collected UCO volume divided by completed pickup routes.
-
-Initial operating target:
-
-**≥50L on tested route**
+Measures how effectively fragmented supply is consolidated into each pickup route.
 
 ### Supporting Metrics
 
-* Route Threshold Achievement
-* Pickup Completion Rate
-* Repeat Contribution Rate
-* Estimated vs Actual Volume Gap
-* Supplier Payout Accuracy
-* Duplicate Weighing Rate
-* Route Contribution Margin
+**Route Threshold Achievement**
 
-The metrics are designed to measure both operational performance and supplier transaction quality.
+Percentage of planned routes reaching the 50L internal operating threshold.
 
----
+**Actual vs Estimated Volume**
 
-## 18. Strategic Assumptions
+Measures accuracy of supplier volume estimates.
 
-The current strategy depends on several assumptions:
+**Pickup Completion Rate**
 
-| Assumption                                  | Why It Matters             | Validation Method               |
-| ------------------------------------------- | -------------------------- | ------------------------------- |
-| Micro-UMKM can provide recurring volume     | Potential route anchor     | Actual collection data          |
-| Nearby households can add meaningful volume | Route densification        | Route experiment                |
-| Suppliers accept scheduled pickup           | Operational predictability | Pickup completion data          |
-| Estimated volume is sufficiently usable     | Route planning             | Estimated vs actual comparison  |
-| Transparent payout supports trust           | Supplier experience        | User feedback + repeat behavior |
-| 50L is a useful pilot threshold             | Route decision gate        | Route and cost data             |
-| Route economics can become sustainable      | Business viability         | Contribution margin analysis    |
+Measures whether scheduled pickups are successfully completed.
+
+**Repeat Contribution Rate**
+
+Measures whether suppliers return with another collection request.
+
+**Supplier Payout Accuracy**
+
+Measures whether calculated payout matches verified weighing records.
 
 ---
 
-## 19. Key Strategic Risks
+## 15. Strategic Decision Framework
 
-### Risk 1 — Insufficient Route Density
+The pilot should use the following decision framework.
 
-If combined supplier volume remains below the internal threshold, pickup operations may not be efficient enough.
+### Continue / Iterate
 
-Response:
+If routes show improving density but do not consistently reach the internal threshold:
 
-Increase density around existing anchors before geographic expansion.
+→ improve supplier aggregation
+→ increase local supplier density
+→ refine scheduling
+→ test different anchor/densifier combinations
 
-### Risk 2 — Inconsistent Supplier Contribution
+### Validate Economics
 
-Suppliers may not contribute as frequently or as much as estimated.
+If routes consistently approach or exceed the threshold:
 
-Response:
+→ measure actual route costs
+→ measure actual buyer price
+→ calculate contribution per route
+→ assess repeatability
 
-Track recurring contribution and compare estimated versus actual volume.
+### Consider Geographic Expansion
 
-### Risk 3 — Price Volatility
+Only after the initial pilot provides sufficient evidence that:
 
-Changes in UCO value may affect supplier participation and route economics.
+1. route density is repeatable
+2. supplier participation is sustainable
+3. route economics are understood
+4. operational workflow is manageable
 
-Response:
-
-Use configurable pricing references with effective dates and maintain payout traceability.
-
-### Risk 4 — Premature Geographic Expansion
-
-Expanding before route economics are understood may multiply operational inefficiencies.
-
-Response:
-
-Use route-density and economic validation as expansion gates.
-
----
-
-## 20. Strategic Decision Framework
-
-The pilot will use three possible directions:
-
-### Iterate
-
-If the model shows promising supplier participation but route density or operational execution remains weak.
-
-Potential actions:
-
-* Increase household densification.
-* Adjust pickup windows.
-* Refine target areas.
-* Improve supplier communication.
-* Improve volume estimation.
-
-### Scale
-
-If route density, operational execution, supplier participation, and economics provide sufficient evidence to justify expansion.
-
-Potential action:
-
-Expand to additional areas while maintaining route-density monitoring.
-
-### Stop or Pivot
-
-If the pilot repeatedly fails to achieve sufficient route density or acceptable economics despite targeted iteration.
-
-Potential actions:
-
-* Reconsider the target segment.
-* Change the collection model.
-* Change the operating threshold.
-* Reassess the business model.
-
-The decision should be based on predefined evidence rather than the number of features shipped.
+Geographic expansion is therefore a **future decision gate**, not a current validated outcome.
 
 ---
 
-## 21. Strategy-to-Product Traceability
+## 16. Evidence Integrity
 
-| Strategic Choice                    | Product Implication                     |
-| ----------------------------------- | --------------------------------------- |
-| Focus on route density              | Area-based supplier grouping            |
-| Use micro-UMKM as potential anchors | Supplier type classification            |
-| Densify with nearby households      | Area selection + route aggregation      |
-| Validate before expansion           | Route threshold + experiment tracking   |
-| Improve transparency                | Collection progress + weighing + payout |
-| Track actual supply                 | Estimated vs actual volume              |
-| Protect transaction integrity       | Duplicate weighing validation           |
-| Handle price changes                | Active pricing reference                |
+This product strategy distinguishes evidence types to prevent assumptions from being presented as validated facts.
+
+### Evidence Labels
+
+**[ACTUAL]**
+
+Evidence directly collected during this project.
+
+Examples:
+
+* 15 survey respondents
+* 3 user interviews
+* Interview participants: 2 households and 1 culinary micro-UMKM
+
+**[ILLUSTRATIVE]**
+
+Example or dummy data used to demonstrate the MVP or calculation.
+
+Examples:
+
+* Example route volume
+* Example payout calculation
+* Demo dashboard values
+
+**[ASSUMPTION]**
+
+A product or business assumption that requires validation.
+
+Examples:
+
+* 50L route operating threshold
+* Micro-UMKM as route anchors
+* Household suppliers as route densifiers
+
+**[PROXY]**
+
+External or indirect data used when direct local data is unavailable.
+
+Examples:
+
+* Broader UCO market estimates
+* External market references
+* Industry-level indicators
 
 ---
 
-## 22. Strategic Conclusion
+## 17. Evidence → Product Decision Chain
 
-Jemput Jelantah's initial strategy is to validate a **localized UCO aggregation model** rather than immediately pursue broad geographic coverage.
+The product strategy follows:
 
-The strategy uses culinary micro-UMKM as potential route anchors and nearby households as potential route densifiers.
+**ACTUAL RESEARCH**
 
-The MVP therefore prioritizes the capabilities required to test this model:
+15 surveys + 3 interviews
 
-**Collection → Scheduling → Aggregation → Tracking → Weighing → Payout → Validation**
+↓
 
-The most important strategic question is not whether more pickup requests can be generated.
+**INSIGHT**
 
-It is whether fragmented supply can be consistently consolidated into sufficiently dense routes while maintaining a transparent supplier experience and acceptable route economics.
+Users need a clearer and more convenient way to hand over UCO, particularly around destination, pricing, and pickup convenience.
 
-The answer should come from pilot evidence, not assumption.
+↓
+
+**OPPORTUNITY**
+
+Aggregate fragmented supply before dispatching pickup routes.
+
+↓
+
+**HYPOTHESIS**
+
+Combining micro-UMKM anchors with nearby households may improve route density.
+
+↓
+
+**MVP**
+
+Collect → Schedule → Aggregate → Track → Weigh → Get Paid
+
+↓
+
+**PROPOSED VALIDATION**
+
+Measure actual liters per route and compare performance against the 50L internal operating threshold.
+
+↓
+
+**FUTURE DECISION**
+
+Iterate / validate economics / consider geographic expansion based on actual pilot evidence.
+
+---
+
+## 18. Current Strategic Status
+
+The current project has validated the **problem discovery stage** through initial user research and translated the findings into an MVP concept.
+
+However, the following remain unvalidated:
+
+* actual route-density performance
+* repeatability of reaching the 50L threshold
+* actual route economics
+* supplier repeat behavior during an operational pilot
+* geographic expansion feasibility
+
+Therefore, the immediate product objective is **not to prove business scale**, but to validate whether the aggregation model works operationally within a focused pilot area.
+
+---
+
+## 19. Strategy Summary
+
+> **Jemput Jelantah focuses on solving fragmented UCO supply before pickup happens. Culinary micro-UMKM are treated as potential route anchors, while nearby households can act as route densifiers. The MVP therefore prioritizes aggregation, scheduled pickup, progress visibility, and transparent weighing and payout. The next validation step is to determine whether this model can consistently build sufficiently dense routes before evaluating route economics and geographic expansion.**
