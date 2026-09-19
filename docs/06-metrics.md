@@ -1,665 +1,970 @@
-# Product Metrics — Jemput Jelantah
+# Product Metrics & Measurement Framework
 
-## 1. Purpose
+## 1. Overview
 
-This document defines the measurement framework for Jemput Jelantah.
+Jemput Jelantah measures product success through **route density, collection reliability, supplier transparency, and transaction accuracy**.
 
-The framework connects product activity with the core product hypothesis:
+The product should not evaluate success based only on the number of pickup requests.
 
-> **If fragmented UCO supply is aggregated around local supplier clusters, route volume can move toward a sufficiently dense operating level before geographic expansion.**
+The primary operational question is:
 
-Metrics are divided into:
-
-1. Success Metrics
-2. Feature Metrics
-3. Business Metrics
-4. Trade-off Metrics
-5. Diagnostic Metrics
-6. Event Tracking
-7. Measurement Rules
-8. Decision Framework
+> **Can fragmented UCO supply be aggregated into sufficiently dense pickup routes while maintaining a transparent supplier experience?**
 
 ---
 
-# 2. Measurement Framework
+# 2. Measurement Philosophy
 
-```text
-USER ACTIVITY
-     ↓
-FEATURE PERFORMANCE
-     ↓
-ROUTE PERFORMANCE
-     ↓
-BUSINESS OUTCOME
-     ↓
-SCALE / ITERATE / STOP DECISION
+The measurement framework follows:
+
+> **Research → Hypothesis → MVP → Measurement → Validation → Decision**
+
+Current research provides the initial evidence for the problem and user needs.
+
+The MVP provides the mechanism to collect operational data.
+
+The pilot will provide the actual baseline required to evaluate the product hypotheses.
+
+Therefore, metrics in this document are divided into:
+
+* **Current Research Evidence**
+* **Future Pilot Metrics**
+* **Product Targets**
+* **Trade-off Metrics**
+
+No demo or illustrative data is treated as an actual product performance result.
+
+---
+
+# 3. Evidence Status
+
+## [ACTUAL]
+
+Evidence currently collected:
+
+* 15 survey respondents
+* 3 user interviews
+* 10 household respondents
+* 5 culinary micro-UMKM respondents
+
+## [ILLUSTRATIVE]
+
+Data used to demonstrate the MVP:
+
+* sample suppliers
+* sample pickup requests
+* sample route volumes
+* sample dashboard metrics
+* example weighing records
+* example payout calculations
+
+## [ASSUMPTION]
+
+Metrics requiring operational validation:
+
+* route-density improvement
+* 50L threshold achievement
+* pickup completion
+* supplier repeat contribution
+* route economics
+
+---
+
+# 4. North Star Operational Metric
+
+## Liters per Completed Route
+
+### Definition
+
+> **Total Actual Collected UCO Volume / Number of Completed Routes**
+
+### Why It Matters
+
+The core product proposition is based on aggregating fragmented supply before dispatching a pickup route.
+
+Therefore, actual liters collected per completed route is the most direct measure of whether the aggregation model is producing meaningful route density.
+
+### Baseline
+
+> **Establish actual baseline during the operational pilot.**
+
+There is currently no validated operational baseline being claimed.
+
+### Evaluation Point
+
+> **Evaluate actual route performance against ≥50L internal pilot operating threshold.**
+
+The 50L threshold is an internal operating assumption for the MVP and is not presented as an industry benchmark or proven break-even point.
+
+---
+
+# 5. Metric Hierarchy
+
+```text id="mtr7q2"
+NORTH STAR
+Liters per Completed Route
+        ↓
+ROUTE METRICS
+Threshold Achievement
+Suppliers per Route
+Actual Volume per Route
+        ↓
+SUPPLIER METRICS
+Pickup Completion
+Repeat Contribution
+Progress Engagement
+        ↓
+TRANSACTION METRICS
+Weighing Accuracy
+Payout Accuracy
+Estimated vs Actual
+        ↓
+BUSINESS METRICS
+Revenue per Route
+Supplier Payout Cost
+Route Variable Cost
+Contribution per Route
 ```
 
-The metric hierarchy prevents the team from treating activity volume alone as product success.
-
-For example:
-
-```text
-More Pickup Requests
-        ≠
-Better Route Economics
-```
-
-The product must determine whether additional requests actually improve route density and operational performance.
+This hierarchy connects user behavior with operational and business outcomes.
 
 ---
 
-# 3. Success Metrics
+# 6. Primary Product Metrics
 
-## 3.1 Route Volume per Route
+## 6.1 Liters per Completed Route
 
-**Definition**
+### Formula
 
-Average actual UCO volume collected per completed route.
+> Actual Collected Liters ÷ Completed Routes
 
-**Formula**
+### Purpose
 
-```text
-Total Actual UCO Collected
-÷
-Number of Completed Routes
-```
+Measures route density after physical collection.
 
-**Pilot Direction**
+### Data Source
 
-```text
-Tested Route Baseline → ≥ 50L
-```
+`WEIGHING_PAYOUT` + `ROUTES`
 
-The 50L value is an internal pilot operating threshold, not an external industry benchmark or proven break-even point.
+### Frequency
 
-**Why it matters**
-
-This is the primary metric for testing whether fragmented supplier contributions can be consolidated into sufficiently dense routes.
-
-**Data Source**
-
-`ROUTES` + `WEIGHING_PAYOUT`
+Per completed route / weekly aggregation.
 
 ---
 
-## 3.2 Route Threshold Achievement Rate
+## 6.2 Route Threshold Achievement
 
-**Definition**
+### Definition
 
-Percentage of completed routes that reach the internal 50L operating threshold.
+Percentage of eligible routes reaching the internal 50L operating threshold.
 
-**Formula**
+### Formula
 
-```text
-Routes ≥ 50L
-÷
-Total Completed Routes
-× 100%
-```
+> Routes Reaching ≥50L ÷ Eligible Routes × 100%
 
-**Target**
+### Purpose
 
-Increase the percentage of routes reaching the threshold during pilot validation.
+Measures whether the aggregation mechanism can build sufficiently dense routes.
 
-A fixed final target is intentionally not defined before sufficient pilot data exists.
+### Target
 
-**Why it matters**
-
-A single successful route does not prove that the aggregation model is repeatable.
+> Establish actual baseline → evaluate consistency against ≥50L threshold.
 
 ---
 
-## 3.3 Pickup Completion Rate
+## 6.3 Actual Volume per Route
 
-**Definition**
+### Definition
 
-Percentage of scheduled pickup requests that are successfully completed.
+Total verified UCO volume collected in a completed route.
 
-**Formula**
+### Purpose
 
-```text
-Completed Pickup Requests
-÷
-Scheduled Pickup Requests
-× 100%
-```
+Separates actual operational output from supplier estimates.
 
-**Target**
+### Important
 
-≥ 80%
-
-**Why it matters**
-
-Route density alone is insufficient if scheduled pickups cannot be operationally fulfilled.
+This metric must use **actual weighing records**, not estimated supplier volume.
 
 ---
 
-## 3.4 Repeat Contribution Rate
+# 7. Route Density Metrics
 
-**Definition**
+## 7.1 Suppliers per Route
 
-Percentage of suppliers who make another pickup contribution after their first completed contribution within the defined measurement period.
+### Formula
 
-**Formula**
+> Number of Suppliers Included in Route
 
-```text
-Suppliers With ≥2 Completed Contributions
-÷
-Suppliers With ≥1 Completed Contribution
-× 100%
-```
+### Purpose
 
-**Target**
+Measures how many contributors are required to create route volume.
 
-Establish baseline during pilot and define an improvement target after sufficient repeat-cycle data is available.
-
-**Why it matters**
-
-The aggregation model requires recurring supply, not only one-time participation.
+This can help identify whether routes depend heavily on one supplier or are successfully aggregated across multiple suppliers.
 
 ---
 
-# 4. Feature Metrics
+## 7.2 Average Supplier Contribution
 
-Feature metrics evaluate whether individual product capabilities are functioning correctly.
+### Formula
 
-| Metric                                | Definition                                                     | Target | Data Source               |
-| ------------------------------------- | -------------------------------------------------------------- | -----: | ------------------------- |
-| Pickup Request Completion             | Requests successfully submitted after starting the flow        |  ≥ 90% | PICKUP_REQUESTS           |
-| Route Aggregation Accuracy            | Route volume correctly reflects included supplier estimates    |   100% | ROUTES                    |
-| Collection Progress Data Completeness | Progress records containing required fields                    |  ≥ 95% | ROUTES / PICKUP_REQUESTS  |
-| Weighing Accuracy                     | Valid weighing records correctly stored and calculated         |   100% | WEIGHING_PAYOUT           |
-| Duplicate Weighing Rate               | Weighing records duplicated for the same request               |     0% | WEIGHING_PAYOUT           |
-| Payout Calculation Accuracy           | Payout calculation matches actual volume × configured payout/L |   100% | WEIGHING_PAYOUT / PRICING |
+> Actual Collected Volume ÷ Number of Suppliers
 
-These metrics primarily validate product correctness rather than business success.
+### Purpose
 
----
+Helps understand the contribution profile of different supplier segments.
 
-# 5. Business Metrics
+It can be analyzed separately for:
 
-Business metrics evaluate whether the product can support a sustainable operating model.
-
-## 5.1 Route Efficiency
-
-**Definition**
-
-Amount of UCO collected relative to route execution effort or capacity.
-
-Possible measurement:
-
-```text
-Actual Liters Collected
-÷
-Route Capacity / Operational Input
-```
-
-The exact denominator should be finalized after real pilot operations provide reliable operational data.
-
-**Purpose**
-
-Determine whether aggregation improves operational utilization.
+* culinary micro-UMKM
+* households
 
 ---
 
-## 5.2 Recurring Supply
+## 7.3 Anchor Contribution
 
-**Definition**
+### Definition
 
-Volume contributed by suppliers who contribute repeatedly.
+Percentage of route volume contributed by the largest or designated anchor supplier.
 
-Possible measurement:
+### Purpose
 
-```text
-Volume From Repeat Suppliers
-÷
-Total Actual Volume
-× 100%
-```
+Helps determine whether the route is genuinely aggregated or overly dependent on a single supplier.
 
-**Purpose**
-
-Determine whether the product can generate a recurring supply base rather than relying on one-time suppliers.
+This metric becomes particularly relevant if culinary micro-UMKM are used as route anchors.
 
 ---
 
-## 5.3 Contribution Margin per Route
+# 8. Supplier Experience Metrics
 
-**Definition**
+## 8.1 Pickup Completion Rate
 
-Economic contribution generated by a completed route after relevant variable costs.
+### Formula
 
-Illustrative structure:
+> Completed Pickups ÷ Scheduled Pickups × 100%
 
-```text
-Route Revenue
-− Supplier Payout
-− Route-Related Variable Costs
-=
-Contribution Margin
-```
+### Target
 
-The MVP should not assume that the current pricing reference represents verified market economics.
+> **≥80%**
 
-**Purpose**
+### Purpose
 
-Determine whether route density can translate into improved route-level economics.
+Measures operational reliability from the supplier perspective.
+
+This is a product target for future pilot validation, not a current result.
 
 ---
 
-## 5.4 Geographic Scalability
+## 8.2 Pickup Cancellation Rate
 
-**Definition**
+### Formula
 
-Ability to replicate the operating model across additional areas without materially degrading route density or operational performance.
+> Cancelled Requests ÷ Scheduled Requests × 100%
 
-Potential indicators:
+### Purpose
 
-* Route threshold achievement by area
-* Liters per route by area
-* Pickup completion by area
-* Repeat contribution by area
-* Route-level contribution margin
+Identifies friction in the pickup process.
 
-**Purpose**
+Potential causes:
 
-Support the decision of whether to expand beyond the initial pilot area.
-
----
-
-# 6. Trade-off Metrics
-
-Improving one metric can negatively affect another.
-
-Jemput Jelantah therefore monitors trade-offs explicitly.
-
-| Primary Objective              | Potential Trade-off              |
-| ------------------------------ | -------------------------------- |
-| Increase route volume          | Longer supplier waiting time     |
-| Increase supplier density      | More complex pickup coordination |
-| Reach 50L faster               | Lower geographic flexibility     |
-| Reduce route frequency         | Longer supplier waiting period   |
-| Increase payout attractiveness | Lower contribution margin        |
-| Expand pickup coverage         | Lower route density              |
-| Increase collection requests   | Higher operational workload      |
-
-The team should avoid optimizing route volume in isolation.
+* waiting too long
+* schedule mismatch
+* insufficient route volume
+* supplier changed availability
+* operational failure
 
 ---
 
-# 7. Diagnostic Metrics
+## 8.3 Status Visibility
 
-Diagnostic metrics help explain why a success metric changes.
+### Definition
 
-### 7.1 Estimated-to-Actual Volume Variance
+Percentage of pickup requests that have a trackable status.
 
-**Formula**
+### Target
 
-```text
-Actual Volume − Estimated Volume
-```
+> **≥90%**
 
-or:
+### Purpose
 
-```text
-|Actual − Estimated|
-÷
-Estimated Volume
-× 100%
-```
-
-**Purpose**
-
-Measure supplier estimation accuracy and improve route planning.
+Measures whether suppliers can understand the state of their pickup request.
 
 ---
 
-### 7.2 Supplier Contribution per Request
+## 8.4 Collection Progress Engagement
 
-**Formula**
+### Definition
 
-```text
-Estimated or Actual Volume
-÷
-Number of Pickup Requests
-```
+Number or percentage of active suppliers who view collection progress.
 
-**Purpose**
+### Event
 
-Understand whether route density is being created by many small contributors or fewer high-volume suppliers.
+`collection_progress_viewed`
 
----
+### Purpose
 
-### 7.3 Household Contribution Density
+Measures whether the aggregation-progress feature is actually used.
 
-**Definition**
-
-Number or volume of household suppliers contributing around an existing route anchor.
-
-**Purpose**
-
-Test the hypothesis that households can densify routes around culinary micro-UMKM suppliers.
+Usage alone should not be interpreted as proof of increased retention or satisfaction.
 
 ---
 
-### 7.4 Route Waiting Time
+# 9. Estimation Accuracy
 
-**Definition**
+## Estimated vs Actual Volume
 
-Time between route creation/opening and reaching the operating threshold.
+Suppliers provide estimated volume before pickup.
 
-```text
-Threshold Reached Timestamp
-−
-Route Open Timestamp
-```
+Operators record actual volume after weighing.
 
-**Purpose**
+The difference provides an important operational measurement.
 
-Determine how quickly an area can accumulate sufficient supply.
+### Formula
 
----
+> **Estimation Accuracy = Actual Volume ÷ Estimated Volume × 100%**
 
-# 8. Event Tracking Plan
+### Example
 
-The MVP should capture key product events.
+| Metric    | Illustrative Value |
+| --------- | -----------------: |
+| Estimated |                 8L |
+| Actual    |               7.5L |
+| Accuracy  |             93.75% |
 
-| Event                        | Trigger                                   | Key Properties                                            |
-| ---------------------------- | ----------------------------------------- | --------------------------------------------------------- |
-| `pickup_request_created`     | New request successfully created          | supplier_type, area, estimated_volume                     |
-| `pickup_scheduled`           | Request assigned to schedule              | area, schedule, route_id                                  |
-| `supplier_added_to_route`    | Supplier included in route                | supplier_type, estimated_volume, route_id                 |
-| `collection_progress_viewed` | Supplier views progress                   | route_id, collected_volume, target_volume                 |
-| `route_threshold_reached`    | Route reaches ≥50L                        | route_id, estimated_volume                                |
-| `pickup_started`             | Route/pickup execution begins             | route_id                                                  |
-| `pickup_completed`           | Pickup is completed                       | route_id, request_id                                      |
-| `weighing_recorded`          | Actual volume recorded                    | request_id, actual_volume                                 |
-| `payout_calculated`          | Supplier payout calculated                | request_id, actual_volume, payout_per_liter, payout_total |
-| `repeat_pickup_requested`    | Existing supplier creates another request | supplier_id, area                                         |
+This is an **illustrative example**, not actual pilot data.
+
+### Why It Matters
+
+Large estimation errors can affect:
+
+* route planning
+* threshold calculations
+* pickup expectations
+* supplier communication
 
 ---
 
-# 9. Critical Product Event
+# 10. Supplier Repeat Contribution
 
-The most important event for the core product hypothesis is:
+## Definition
 
-```text
-route_threshold_reached
-```
+Percentage of suppliers who submit another pickup request after completing a previous collection.
 
-This event indicates that an aggregated supplier cluster has reached the internal operating threshold.
+### Formula
 
-The event should capture:
+> Suppliers with Repeat Request ÷ Eligible Completed Suppliers × 100%
 
-```text
-route_id
-area
-schedule
-estimated_volume
-supplier_count
-household_count
-umkm_count
-timestamp
-```
+### Current Baseline
 
-This enables analysis of what supplier composition and area conditions are associated with threshold achievement.
+> **Not yet established.**
+
+A repeat target should be set after observing actual pilot behavior.
+
+### Event
+
+`repeat_pickup_requested`
 
 ---
 
-# 10. Metric Ownership
+# 11. Transaction Metrics
 
-| Metric Area             | Primary Owner                     |
-| ----------------------- | --------------------------------- |
-| Product Success Metrics | Product Manager                   |
-| Feature Metrics         | Product Manager + QA/Data Analyst |
-| Route Metrics           | Operations + Product Manager      |
-| Business Metrics        | Product Manager                   |
-| Transaction Accuracy    | Backend + QA/Data Analyst         |
-| Supplier Experience     | Product Manager                   |
-| Experiment Analysis     | Product Manager + QA/Data Analyst |
+## 11.1 Payout Accuracy
 
-The Product Manager owns the interpretation and product decisions, while implementation and data quality are shared with the relevant roles.
+### Definition
 
----
+Percentage of completed transactions where the system calculation matches the verified payout formula.
 
-# 11. Data Sources
+### Formula
 
-The MVP uses Google Sheets as the primary data layer.
+> Correct Payout Calculations ÷ Completed Payout Transactions × 100%
 
-| Sheet             | Primary Measurement                          |
-| ----------------- | -------------------------------------------- |
-| `SUPPLIERS`       | Supplier identity and segment                |
-| `PICKUP_REQUESTS` | Requests, estimated volume, status           |
-| `ROUTES`          | Area aggregation, route volume, route status |
-| `WEIGHING_PAYOUT` | Actual volume and payout                     |
-| `PRICING`         | Active pricing reference                     |
-| `DASHBOARD`       | Aggregated operational metrics               |
-| `VALIDATION`      | Validation and test results                  |
+### Target
 
-The MVP does not require a separate analytics platform for initial validation.
+> **100%**
 
 ---
 
-# 12. Measurement Rules
+## 11.2 Weighing Completion Rate
 
-## Rule 1 — Separate Estimated and Actual Data
+### Formula
 
-Estimated volume is used for planning.
+> Requests with Valid Weighing Records ÷ Completed Pickups × 100%
 
-Actual weighed volume is used for final transaction calculation.
+### Target
 
----
+> **100%**
 
-## Rule 2 — Define the Measurement Window
-
-Metrics should always be evaluated against a defined period.
-
-Example:
-
-```text
-Pilot Period:
-[Start Date] → [End Date]
-```
-
-This prevents metrics from different periods from being incorrectly compared.
+Every completed pickup should have a corresponding actual volume record.
 
 ---
 
-## Rule 3 — Do Not Mix Demo Data With Pilot Data
+## 11.3 Duplicate Transaction Rate
 
-Illustrative or demo records must not be presented as validated product performance.
+### Definition
 
-If demo data is displayed, it should be explicitly labelled:
+Percentage of requests receiving more than one weighing/payout record.
 
-```text
-Illustrative / Demo Data
+### Target
+
+> **0%**
+
+This protects transaction integrity.
+
+---
+
+# 12. Pricing Metrics
+
+The MVP stores:
+
+* reference buyer price/L
+* supplier payout/L
+* effective date
+* source
+
+These values should be traceable to a specific pricing configuration.
+
+### Pricing Reference Integrity
+
+> Percentage of payout transactions linked to a valid active pricing reference.
+
+### Target
+
+> **100%**
+
+This ensures the payout calculation is auditable.
+
+---
+
+# 13. Business Metrics
+
+Business metrics should only be calculated after actual commercial and operational data becomes available.
+
+## 13.1 Revenue per Route
+
+### Formula
+
+> Actual Collected Volume × Buyer Price/L
+
+---
+
+## 13.2 Supplier Payout Cost
+
+### Formula
+
+> Actual Collected Volume × Supplier Payout/L
+
+---
+
+## 13.3 Route Variable Cost
+
+Potential components:
+
+* fuel
+* transportation
+* collection labor
+* handling
+* other route-specific operating costs
+
+---
+
+## 13.4 Contribution per Route
+
+### Formula
+
+> Revenue − Supplier Payout Cost − Route Variable Costs
+
+This is required before making claims about route-level economic viability.
+
+---
+
+## 13.5 Contribution Margin
+
+### Formula
+
+> Contribution ÷ Revenue × 100%
+
+This should only be calculated using actual transaction and route-cost data.
+
+---
+
+# 14. Metric Tree
+
+```text id="q5r3vb"
+PRODUCT OBJECTIVE
+Validate UCO aggregation model
+            │
+            ▼
+ROUTE DENSITY
+            │
+    ┌───────┼────────┐
+    ▼       ▼        ▼
+Liters/   Suppliers  Threshold
+Route     /Route     Achievement
+    │
+    ▼
+OPERATIONAL RELIABILITY
+    │
+    ├── Pickup Completion
+    ├── Cancellation
+    └── Est. vs Actual
+    │
+    ▼
+SUPPLIER EXPERIENCE
+    │
+    ├── Status Visibility
+    ├── Progress Usage
+    └── Repeat Contribution
+    │
+    ▼
+TRANSACTION INTEGRITY
+    │
+    ├── Weighing Accuracy
+    ├── Payout Accuracy
+    └── Pricing Traceability
+    │
+    ▼
+BUSINESS VALIDATION
+    │
+    ├── Revenue/Route
+    ├── Route Cost
+    └── Contribution/Route
 ```
 
 ---
 
-## Rule 4 — Keep Research Evidence Separate From Product Metrics
+# 15. Success Metrics
 
-Survey responses measure stated preferences.
+## Product Success
 
-Product metrics measure observed product behavior.
+### Route Density
 
-They should not be treated as equivalent evidence.
+The pilot establishes a real route-density baseline and evaluates whether routes can consistently reach or approach the 50L internal threshold.
 
-For example:
+### Pickup Reliability
 
-```text
-100% stated interest
-        ≠
-100% actual participation
-```
+> ≥80% scheduled pickup completion.
 
----
+### Status Transparency
 
-## Rule 5 — Baseline Before Optimization
+> ≥90% pickup requests have trackable status.
 
-Where insufficient historical data exists, the MVP should establish a baseline first.
+### Transaction Integrity
 
-This applies particularly to:
+> 100% of completed pickups have valid weighing and payout records.
 
-* Repeat Contribution Rate
-* Route Economics
-* Geographic Scalability
-* Supplier Retention
+### Pricing Traceability
+
+> 100% of payout calculations reference an active pricing configuration.
 
 ---
 
-# 13. Metric Interpretation
+# 16. Trade-Off Metrics
 
-Metrics should be interpreted together rather than individually.
+The product should not optimize route volume at the expense of supplier experience or operational quality.
 
-Example:
+Therefore, the following must be monitored alongside route density:
 
-```text
-Route Volume ↑
-        +
-Pickup Completion ↓
+| Metric              | Risk                                               |
+| ------------------- | -------------------------------------------------- |
+| Waiting Time        | Higher route density may delay pickup              |
+| Cancellation Rate   | Delays may reduce participation                    |
+| Estimation Variance | Optimistic estimates may distort route planning    |
+| Supplier Complaints | Operational friction                               |
+| Missed Pickup       | Poor reliability                                   |
+| Payout Discrepancy  | Loss of trust                                      |
+| Route Distance      | Higher density should not require excessive travel |
+
+---
+
+# 17. Guardrail Metrics
+
+The following metrics act as operational guardrails.
+
+### Payout Accuracy
+
+Target:
+
+> 100%
+
+### Duplicate Weighing
+
+Target:
+
+> 0%
+
+### Missing Weighing Record
+
+Target:
+
+> 0%
+
+### Missing Request ID
+
+Target:
+
+> 0%
+
+### Missing Pricing Reference
+
+Target:
+
+> 0%
+
+These metrics protect the integrity of the operational workflow.
+
+---
+
+# 18. Funnel Metrics
+
+The supplier funnel is:
+
+```text id="f9e5c1"
+VISIT HOME
+   ↓
+START COLLECTION
+   ↓
+SELECT TYPE
+   ↓
+INPUT VOLUME
+   ↓
+SELECT AREA
+   ↓
+SELECT SCHEDULE
+   ↓
+CREATE REQUEST
+   ↓
+JOIN ROUTE
+   ↓
+ROUTE READY
+   ↓
+PICKUP COMPLETED
+   ↓
+WEIGHING
+   ↓
+PAYOUT
+   ↓
+REPEAT REQUEST
 ```
 
-This may indicate that increasing route size creates operational difficulty.
+Each stage can be measured to identify where users or operational processes drop off.
 
-Another example:
+---
 
-```text
-Route Volume ↑
-        +
-Contribution Margin ↓
-```
+# 19. Core Analytics Events
 
-This may indicate that additional volume is being acquired at an uneconomical payout or route cost.
+| Event                        | Metric Supported        |
+| ---------------------------- | ----------------------- |
+| `pickup_request_created`     | Request volume          |
+| `supplier_added_to_route`    | Supplier aggregation    |
+| `collection_progress_viewed` | Transparency engagement |
+| `route_threshold_reached`    | Threshold achievement   |
+| `pickup_started`             | Operational execution   |
+| `pickup_completed`           | Completion rate         |
+| `weighing_recorded`          | Transaction completion  |
+| `payout_calculated`          | Payout processing       |
+| `repeat_pickup_requested`    | Repeat contribution     |
+
+### Critical Event
+
+> **`route_threshold_reached`**
+
+This is the key event connecting supplier participation to the core aggregation hypothesis.
+
+---
+
+# 20. Data Sources
+
+| Metric Area     | Primary Data Source    |
+| --------------- | ---------------------- |
+| Supplier        | `SUPPLIERS`            |
+| Pickup Requests | `PICKUP_REQUESTS`      |
+| Route           | `ROUTES`               |
+| Weighing        | `WEIGHING_PAYOUT`      |
+| Pricing         | `PRICING`              |
+| Validation      | `VALIDATION`           |
+| Dashboard       | Aggregated system data |
+
+---
+
+# 21. Measurement Frequency
+
+### Real-Time / Transaction Level
+
+* pickup status
+* route volume
+* weighing
+* payout
+
+### Daily
+
+* pickup requests
+* route progress
+* completed pickups
+* operational issues
+
+### Weekly
+
+* liters per route
+* threshold achievement
+* supplier contribution
+* completion rate
+* estimation accuracy
+* repeat contribution
+
+### End of Pilot
+
+* route economics
+* operational constraints
+* supplier experience
+* hypothesis validation
+* scale decision
+
+---
+
+# 22. Pilot Measurement Template
+
+The operational pilot should record:
+
+| Metric                | Baseline |                Target | Actual | Status |
+| --------------------- | -------: | --------------------: | -----: | ------ |
+| Liters / Route        |      TBD | ≥50L evaluation point |    TBD | TBD    |
+| Threshold Achievement |      TBD |                   TBD |    TBD | TBD    |
+| Pickup Completion     |      TBD |                  ≥80% |    TBD | TBD    |
+| Status Visibility     |      TBD |                  ≥90% |    TBD | TBD    |
+| Repeat Contribution   |      TBD |                   TBD |    TBD | TBD    |
+| Payout Accuracy       |      TBD |                  100% |    TBD | TBD    |
+
+`TBD` is intentional because the operational baseline has not yet been collected.
+
+---
+
+# 23. Experiment Measurement
+
+The route-density experiment should compare actual operational data rather than relying on demo values.
+
+### Required Measurements
+
+**Before / Baseline**
+
+* current supplier contribution
+* current route volume
+* supplier count
+* estimated volume
+
+**After Intervention**
+
+* supplier count
+* estimated volume
+* actual volume
+* route threshold achievement
+* route completion
+* operational cost
+
+### Primary Comparison
+
+> **Actual Liters per Route Before vs After Aggregation Intervention**
+
+The exact baseline must be established from real operational observations.
+
+---
+
+# 24. Route-Density Validation
+
+The core validation question is:
+
+> **Does adding nearby suppliers around a route anchor increase route volume enough to improve route density?**
+
+Potential intervention:
+
+**Micro-UMKM Anchor + Nearby Household Densification**
+
+Measure:
+
+1. Number of suppliers
+2. Estimated volume
+3. Actual collected volume
+4. Liters per route
+5. Distance / route effort
+6. Pickup completion
+7. Repeat contribution
+
+The experiment result should only be documented after real execution.
+
+---
+
+# 25. Decision Thresholds
+
+The metrics are intended to support product decisions rather than simply report activity.
+
+### If Route Density Improves
+
+Investigate:
+
+* repeatability
+* route costs
+* supplier consistency
+* operational capacity
+
+### If Route Density Does Not Improve
+
+Investigate:
+
+* supplier density
+* collection radius
+* anchor selection
+* schedule configuration
+* minimum route threshold
+* supplier contribution consistency
+
+### If Route Density Improves but Economics Do Not
+
+Investigate:
+
+* payout structure
+* route cost
+* buyer price
+* collection frequency
+* route distance
+
+This prevents the product team from treating higher volume as automatically equivalent to business viability.
+
+---
+
+# 26. Scale Decision Inputs
+
+Geographic expansion should only be considered after reviewing:
+
+### Operational
+
+* route-density consistency
+* pickup reliability
+* route distance
+* supplier contribution consistency
+
+### Supplier
+
+* repeat contribution
+* cancellation
+* satisfaction/feedback
+* payout transparency
+
+### Economic
+
+* buyer price
+* supplier payout
+* route variable cost
+* contribution per route
+
+### Product
+
+* system reliability
+* data integrity
+* workflow completion
+* operational usability
+
+The scale decision should be based on actual pilot evidence.
+
+---
+
+# 27. Current Measurement Status
+
+### Already Available
+
+**Research evidence**
+
+* 15 survey responses
+* 3 interviews
+
+**MVP capability**
+
+* supplier records
+* pickup requests
+* route aggregation
+* route threshold logic
+* weighing
+* payout calculation
+* pricing reference
+* dashboard
+
+### Not Yet Validated
+
+* actual liters per route
+* actual route-density improvement
+* repeatability of 50L threshold
+* actual route economics
+* sustainable supplier repeat behavior
+* geographic expansion feasibility
+
+---
+
+# 28. Evidence Integrity Rule
+
+> **A metric is not an outcome until it is measured from the relevant real-world population and period.**
 
 Therefore:
 
-> **A metric movement is a signal for investigation, not automatically a product success or failure.**
+**Demo Data ≠ Pilot Data**
+
+**Illustrative Calculation ≠ Business Result**
+
+**Product Target ≠ Achievement**
+
+**Hypothesis ≠ Validation**
+
+This principle applies to all portfolio claims.
 
 ---
 
-# 14. Product Decision Framework
+# 29. Final Measurement Framework
 
-Metrics are used to support three possible product directions.
+The complete measurement chain is:
 
-## Iterate
-
-Consider iteration when:
-
-* Routes are not consistently reaching the threshold.
-* Supplier participation is present but route density remains insufficient.
-* Product friction prevents successful pickup completion.
-* Estimated and actual volumes show significant variance.
-* Supplier experience issues are identified.
-
----
-
-## Scale
-
-Consider geographic expansion only when pilot evidence demonstrates that:
-
-* Route density is repeatable.
-* Pickup operations can be completed reliably.
-* Supplier contributions recur.
-* Route economics are sufficiently understood.
-* Operational constraints are manageable.
-
----
-
-## Stop / Pivot
-
-Consider stopping or changing the current approach when:
-
-* Route density remains insufficient despite targeted densification.
-* Supplier participation does not translate into completed pickups.
-* Recurring supply remains weak.
-* Route economics do not support the operating model.
-* A critical assumption is invalidated by pilot evidence.
-
-These are decision criteria, not predetermined outcomes.
-
----
-
-# 15. Metric Hierarchy
-
-The complete measurement system can be summarized as:
-
-```text
-                 BUSINESS OUTCOMES
-                        │
-          ┌─────────────┼─────────────┐
-          ↓             ↓             ↓
-    Route Efficiency  Recurring   Contribution
-                      Supply       Margin
-          │
-          ↓
-     SUCCESS METRICS
-          │
-    ┌─────┼─────┐
-    ↓     ↓     ↓
- Liters  Route  Pickup
- /Route  ≥50L   Completion
-          │
-          ↓
-     FEATURE METRICS
-          │
-    ┌─────┼─────┐
-    ↓     ↓     ↓
- Request Aggregation Weighing
- Accuracy Accuracy   Accuracy
-          │
-          ↓
-     USER / SYSTEM EVENTS
-          │
-          ↓
-    PRODUCT ACTIVITY
+```text id="z2r7km"
+USER CONTRIBUTION
+       ↓
+SUPPLIER AGGREGATION
+       ↓
+ROUTE VOLUME
+       ↓
+50L THRESHOLD
+       ↓
+ACTUAL COLLECTION
+       ↓
+WEIGHING
+       ↓
+PAYOUT
+       ↓
+ROUTE ECONOMICS
+       ↓
+REPEATABILITY
+       ↓
+SCALE DECISION
 ```
 
-This hierarchy connects low-level product events to the strategic business hypothesis.
+The purpose of the MVP is to generate the evidence needed to evaluate this chain.
+
+The current project has evidence for the **problem discovery stage**, but operational metrics remain to be validated through real pickup activity.
 
 ---
 
-# 16. Measurement Limitations
+# 30. Conclusion
 
-The initial MVP has several measurement limitations:
+Jemput Jelantah measures success through the quality and density of collected supply rather than request volume alone.
 
-1. The pilot sample may be too small to establish statistically robust business conclusions.
-2. Supplier volume is initially self-reported before actual weighing.
-3. Route economics depend on operational cost data that may not yet be available.
-4. Repeat contribution requires multiple collection cycles.
-5. Geographic scalability cannot be validated from a single pilot area.
-6. The 50L threshold is an internal operating assumption and requires validation through pilot data.
-7. Pricing references may change over time and should therefore be stored with effective dates and sources.
+The primary metric is **actual liters per completed route**, evaluated against the **50L internal pilot operating threshold**.
 
-These limitations should be disclosed when presenting MVP results.
+Supporting metrics measure:
 
----
+* route threshold achievement
+* supplier contribution
+* pickup reliability
+* estimation accuracy
+* repeat contribution
+* weighing and payout accuracy
+* pricing traceability
+* route economics
 
-# 17. Final Measurement Principle
+Current research provides the initial problem evidence, while the operational pilot is required to establish actual baselines and validate the route-density hypothesis.
 
-Jemput Jelantah should not define success as simply:
+The resulting measurement framework enables the product team to make the next decision based on evidence:
 
-```text
-More Users
-More Requests
-More Liters
-```
-
-Instead, the core measurement question is:
-
-```text
-Can fragmented UCO supply
-        ↓
-be aggregated locally
-        ↓
-into sufficiently dense routes
-        ↓
-while maintaining
-pickup reliability + transaction transparency
-        ↓
-and eventually supporting
-sustainable route economics?
-```
-
-The MVP metrics are therefore designed to validate the **aggregation and route-density hypothesis**, while preventing early activity metrics from being mistaken for proof of business viability.
+> **Iterate → Validate Economics → Assess Repeatability → Consider Expansion**
