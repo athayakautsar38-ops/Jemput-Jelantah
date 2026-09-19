@@ -254,5 +254,124 @@ Potential role:
 
 Rationale:
 
-The current sample shows higher individual UCO volume potentia
+The current sample shows higher individual UCO volume potential among culinary micro-UMKM compared with households.
 
+A higher-volume supplier may help establish an initial route volume base.
+
+### Households
+
+Potential role:
+
+**Route Densifier**
+
+Rationale:
+
+Individual household contributions are generally smaller in the current sample. Nearby households can potentially add incremental volume to an existing route.
+
+This creates the following operating hypothesis:
+
+**Micro-UMKM Anchor + Nearby Household Densification**
+
+This is a product hypothesis that requires validation during the pilot.
+
+---
+
+## 10. From Evidence to Product Decisions
+
+| Research Evidence                                     | Insight                                            | Product Decision                                |
+| ----------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------- |
+| 15/15 respondents rated pickup interest 4–5           | Pickup is attractive within the surveyed sample    | Include scheduled pickup in MVP                 |
+| 11/15 respondents selected scheduled pickup           | Scheduled collection has initial user acceptance   | Include area-based pickup schedules             |
+| 5/15 did not know where to sell/hand over UCO         | Collection access is unclear for some users        | Provide a clear collection request flow         |
+| 5/15 did not know a fair selling price                | Price uncertainty exists                           | Show pricing reference and payout calculation   |
+| 15/15 selected clear selling price as important       | Price transparency is broadly valued in the sample | Include price reference in transaction flow     |
+| 9/15 selected no pickup fee                           | Pickup cost can affect perceived value             | Test pickup model without a supplier pickup fee |
+| Household volumes are generally smaller in the sample | Household supply may require aggregation           | Group nearby households into area-based routes  |
+| UMKM showed higher individual volume potential        | UMKM may provide an initial route volume base      | Test micro-UMKM as potential route anchors      |
+| Supply contribution varies between users              | Individual pickup may not create sufficient volume | Track aggregated liters per route               |
+
+---
+
+## 11. Product Hypotheses Derived from Research
+
+### Hypothesis 1 — Route Aggregation
+
+If nearby household suppliers are aggregated around culinary micro-UMKM anchors, total route volume can move toward the internal 50L pilot operating threshold.
+
+### Hypothesis 2 — Scheduled Collection
+
+If suppliers can select a defined area and pickup time window, the collection process can become more predictable for both suppliers and pickup operations.
+
+### Hypothesis 3 — Transaction Transparency
+
+If the product shows pricing reference, actual weighed volume, and payout calculation, supplier understanding of the transaction can improve.
+
+### Hypothesis 4 — Household Densification
+
+If households are recruited around existing UMKM anchors rather than across dispersed areas, incremental volume can be added without immediately expanding geographic coverage.
+
+---
+
+## 12. Research Limitations
+
+The research has several limitations that affect how the findings should be interpreted.
+
+### Small Sample Size
+
+The survey included only 15 respondents and three interviews.
+
+The findings are therefore directional and should not be interpreted as representative of all households or culinary micro-UMKM in Jember.
+
+### Sampling Limitation
+
+The sample was not designed as a statistically representative population sample.
+
+### Self-Reported Volume
+
+Weekly UCO volume was self-reported using broad categories. Several respondents also did not know their exact weekly volume.
+
+Therefore, reported volume should be treated as an initial indication rather than verified supply volume.
+
+### Stated Intent vs Actual Behavior
+
+Survey responses measure stated preferences.
+
+They do not prove that users will consistently submit UCO, use scheduled pickup, or repeat their contribution.
+
+### Interview Scope
+
+Only three interviews were conducted. Interview findings were therefore used for hypothesis generation rather than broad generalization.
+
+---
+
+## 13. Research Validation Gaps
+
+The following questions remain open and require MVP or pilot validation:
+
+1. Can nearby suppliers consistently reach the 50L internal pilot operating threshold?
+2. How many household suppliers are required to densify a route around one micro-UMKM anchor?
+3. What geographic radius produces acceptable route efficiency?
+4. How accurately can suppliers estimate their UCO volume?
+5. Does transparent weighing and payout improve supplier trust and repeat contribution?
+6. What level of pickup frequency is operationally sustainable?
+7. How does UCO price fluctuation affect supplier participation and route economics?
+
+---
+
+## 14. Research-to-Product Conclusion
+
+The research suggests that the initial product opportunity is not only about enabling UCO pickup.
+
+The more specific opportunity is to test whether fragmented supply from households and culinary micro-UMKM can be consolidated into sufficiently dense pickup routes.
+
+The research therefore supports an initial operating model where:
+
+**Culinary Micro-UMKM → Potential Route Anchor**
+
+**Nearby Households → Route Densifiers**
+
+**Scheduled Area Pickup → Aggregation Mechanism**
+
+**Weighing + Pricing Reference → Transaction Transparency**
+
+The MVP is designed to validate these assumptions through actual collection, route aggregation, weighing, and payout data rather than relying only on stated survey interest.
