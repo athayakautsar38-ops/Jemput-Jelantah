@@ -818,59 +818,61 @@
      PRICING REFERENCE
      ========================================================= */
 
-  function loadCurrentPricing() {
-    google.script.run
-      .withSuccessHandler(function(result) {
-        if (
-          !result ||
-          !result.referencePricePerL
-        ) {
-          showPricingUnavailable();
-          return;
-        }
+function loadCurrentPricing() {
+  google.script.run
+    .withSuccessHandler(function(result) {
 
-        const price =
-          Number(
-            result.referencePricePerL
-          );
+      if (
+        !result ||
+        result.success !== true ||
+        !result.referencePricePerL
+      ) {
+        showPricingUnavailable();
+        return;
+      }
 
-        const priceElement =
-          document.getElementById(
-            "referencePrice"
-          );
-
-        const dateElement =
-          document.getElementById(
-            "referencePriceDate"
-          );
-
-        if (priceElement) {
-          priceElement.textContent =
-            formatRupiah(price) + "/L";
-        }
-
-        if (dateElement) {
-          const date =
-            result.effectiveDate
-              ? formatDate(
-                  result.effectiveDate
-                )
-              : "-";
-
-          dateElement.textContent =
-            "Effective " + date;
-        }
-      })
-      .withFailureHandler(function(error) {
-        console.error(
-          "Failed to load pricing:",
-          error
+      const price =
+        Number(
+          result.referencePricePerL
         );
 
-        showPricingUnavailable();
-      })
-      .getCurrentPricing();
-  }
+      const priceElement =
+        document.getElementById(
+          "referencePrice"
+        );
+
+      const dateElement =
+        document.getElementById(
+          "referencePriceDate"
+        );
+
+      if (priceElement) {
+        priceElement.textContent =
+          formatRupiah(price) + "/L";
+      }
+
+      if (dateElement) {
+        dateElement.textContent =
+          "Effective " +
+          (
+            result.effectiveDate || "-"
+          );
+      }
+
+    })
+    .withFailureHandler(function(error) {
+
+      console.error(
+        "Failed to load pricing:",
+        error
+      );
+
+      showPricingUnavailable();
+
+    })
+    .getCurrentPricing();
+}
+
 
 
   function showPricingUnavailable() {
