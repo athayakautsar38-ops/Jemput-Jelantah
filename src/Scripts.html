@@ -1,0 +1,1560 @@
+```html
+<script>
+  /* =========================================================
+     GLOBAL STATE
+     ========================================================= */
+
+  let selectedType = "";
+  let currentSupplier = null;
+  let currentPhone = "";
+  let weighingQueue = [];
+  let currentSupplierPayoutPerL = 0;
+
+
+  /* =========================================================
+     SCREEN NAVIGATION
+     ========================================================= */
+
+  function showScreen(screenId) {
+    document.querySelectorAll(".screen").forEach(screen => {
+      screen.classList.remove("active");
+    });
+
+    const target = document.getElementById(screenId);
+
+    if (target) {
+      target.classList.add("active");
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+
+    if (screenId === "weighingScreen") {
+      loadWeighingQueue();
+    }
+  }
+
+
+  /* =========================================================
+     HOME
+     ========================================================= */
+
+  function startPickupFlow() {
+    selectedType = "";
+
+    document.querySelectorAll(".type-card").forEach(card => {
+      card.classList.remove("selected");
+    });
+
+    const continueButton =
+      document.getElementById("continueTypeButton");
+
+    if (continueButton) {
+      continueButton.disabled = true;
+    }
+
+    showScreen("typeScreen");
+  }
+
+
+  function goToPhoneCheck() {
+    const phoneInput = document.getElementById("checkPhone");
+
+    if (phoneInput) {
+      phoneInput.value = "";
+    }
+
+    hideError("phoneErrorBox");
+
+    showScreen("phoneScreen");
+  }
+
+
+  /* =========================================================
+     SUPPLIER TYPE
+     ========================================================= */
+
+  function selectType(type) {
+    selectedType = type;
+
+    document.querySelectorAll(".type-card").forEach(card => {
+      card.classList.remove("selected");
+    });
+
+    const selectedCard = document.getElementById(
+      type === "UMKM"
+        ? "umkmCard"
+        : "householdCard"
+    );
+
+    if (selectedCard) {
+      selectedCard.classList.add("selected");
+    }
+
+    const continueButton =
+      document.getElementById("continueTypeButton");
+
+    if (continueButton) {
+      continueButton.disabled = false;
+    }
+  }
+
+
+  function goToForm() {
+    if (!selectedType) {
+      return;
+    }
+
+    hideError("errorBox");
+
+    const typeLabel =
+      document.getElementById("selectedTypeLabel");
+
+    if (typeLabel) {
+      typeLabel.textContent =
+        selectedType === "UMKM"
+          ? "UMKM Kuliner"
+          : "Rumah Tangga";
+    }
+
+    showScreen("formScreen");
+  }
+
+
+  /* =========================================================
+     PHONE CHECK
+     ========================================================= */
+
+  function checkUserPhone() {
+    const phoneInput = document.getElementById("checkPhone");
+    const phone = phoneInput
+      ? phoneInput.value.trim()
+      : "";
+
+    hideError("phoneErrorBox");
+
+    if (!phone) {
+      showError(
+        "phoneErrorBox",
+        "Masukkan nomor WhatsApp terlebih dahulu."
+      );
+      return;
+    }
+
+    const button =
+      document.getElementById("checkPhoneButton");
+
+    const loading =
+      document.getElementById("phoneLoading");
+
+    if (button) {
+      button.disabled = true;
+    }
+
+    if (loading) {
+      loading.classList.add("visible");
+    }
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (button) {
+          button.disabled = false;
+        }
+
+        if (loading) {
+          loading.classList.remove("visible");
+        }
+
+        currentPhone = phone;
+
+        if (
+          result &&
+          result.supplier
+        ) {
+          currentSupplier = result.supplier;
+
+          renderReturningUser(result);
+
+          showScreen("returningScreen");
+        } else {
+          showError(
+            "phoneErrorBox",
+            "Nomor belum terdaftar. Silakan mulai pengumpulan baru."
+          );
+        }
+      })
+      .withFailureHandler(function(error) {
+        if (button) {
+          button.disabled = false;
+        }
+
+        if (loading) {
+          loading.classList.remove("visible");
+        }
+
+        handleError(
+          error,
+          "phoneErrorBox"
+        );
+      })
+      .getPickupHistoryByPhone(phone);
+  }
+
+
+  /* =========================================================
+     RETURNING USER
+     ========================================================= */
+
+  function renderReturningUser(result) {
+    const supplier =
+      result && result.supplier
+        ? result.supplier
+        : null;
+
+    const history =
+      result && Array.isArray(result.history)
+        ? result.history
+        : [];
+
+    const greeting =
+      document.getElementById("returningGreeting");
+
+    if (greeting) {
+      const name =
+        supplier && supplier.name
+          ? supplier.name
+          : "Supplier";
+
+      greeting.textContent =
+        "Halo, " + name;
+    }
+
+    const supplierCard =
+      document.getElementById(
+        "returningSupplierCard"
+      );
+
+    if (supplierCard) {
+      const name =
+        supplier && supplier.name
+          ? supplier.name
+          : "-";
+
+      const type =
+        supplier && supplier.supplier_type
+          ? supplier.supplier_type
+          : "-";
+
+      const area =
+        supplier && supplier.area
+          ? supplier.area
+          : "-";
+
+      supplierCard.innerHTML = `
+        <div class="card-title">${escapeHtml(name)}</div>
+        <div class="card-description">
+          ${escapeHtml(type)} · ${escapeHtml(area)}
+        </div>
+      `;
+    }
+
+    renderPickupHistory(history);
+  }
+
+
+  function renderPickupHistory(history) {
+    const container =
+      document.getElementById("pickupHistory");
+
+    if (!container) {
+      return;
+    }
+
+    if (!history || history.length === 0) {
+      container.innerHTML = `
+        <div class="card-description">
+          Belum ada riwayat pickup.
+        </div>
+      `;
+
+      return;
+    }
+
+    container.innerHTML = history
+      .map(item => {
+        const requestId =
+          item.request_id ||
+          item.requestId ||
+          "-";
+
+        const status =
+          item.status || "-";
+
+        const volume =
+          item.estimated_volume_l ??
+          item.volume ??
+          "-";
+
+        const area =
+          item.area || "-";
+
+        const schedule =
+          item.pickup_time ||
+          item.schedule ||
+          "-";
+
+        return `
+          <div class="history-item">
+            <div class="history-top">
+              <div class="history-id">
+                ${escapeHtml(requestId)}
+              </div>
+
+              <div class="history-status">
+                ${escapeHtml(status)}
+              </div>
+            </div>
+
+            <div class="history-meta">
+              ${escapeHtml(String(volume))} L
+              · ${escapeHtml(area)}
+              · ${escapeHtml(schedule)}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+
+  function startNewPickup() {
+    startPickupFlow();
+  }
+
+
+  /* =========================================================
+     PICKUP REQUEST
+     ========================================================= */
+
+  function submitPickup() {
+    hideError("errorBox");
+
+    const name =
+      document.getElementById("name").value.trim();
+
+    const phone =
+      document.getElementById("phone").value.trim();
+
+    const area =
+      document.getElementById("area").value.trim();
+
+    const address =
+      document.getElementById("address").value.trim();
+
+    const volumeValue =
+      document.getElementById("volume").value;
+
+    const schedule =
+      document.getElementById("schedule").value.trim();
+
+    const notes =
+      document.getElementById("notes").value.trim();
+
+    const volume =
+      parseFloat(volumeValue);
+
+    if (!name) {
+      showError(
+        "errorBox",
+        "Nama wajib diisi."
+      );
+      return;
+    }
+
+    if (!phone) {
+      showError(
+        "errorBox",
+        "Nomor WhatsApp wajib diisi."
+      );
+      return;
+    }
+
+    if (!area) {
+      showError(
+        "errorBox",
+        "Area wajib dipilih."
+      );
+      return;
+    }
+
+    if (!address) {
+      showError(
+        "errorBox",
+        "Alamat wajib diisi."
+      );
+      return;
+    }
+
+    if (
+      !Number.isFinite(volume) ||
+      volume <= 0
+    ) {
+      showError(
+        "errorBox",
+        "Volume harus lebih besar dari 0 liter."
+      );
+      return;
+    }
+
+    if (!schedule) {
+      showError(
+        "errorBox",
+        "Jadwal pickup wajib dipilih."
+      );
+      return;
+    }
+
+    const button =
+      document.getElementById("submitButton");
+
+    const loading =
+      document.getElementById("loading");
+
+    if (button) {
+      button.disabled = true;
+    }
+
+    if (loading) {
+      loading.classList.add("visible");
+    }
+
+    const supplierData = {
+      name: name,
+      phone: phone,
+      supplier_type: selectedType,
+      area: area
+    };
+
+    google.script.run
+      .withSuccessHandler(function(supplier) {
+        currentSupplier = supplier;
+
+        const requestData = {
+          supplier_id:
+            supplier.supplier_id ||
+            supplier.id,
+
+          estimated_volume_l: volume,
+
+          area: area,
+
+          address: address,
+
+          pickup_time: schedule,
+
+          notes: notes
+        };
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (button) {
+              button.disabled = false;
+            }
+
+            if (loading) {
+              loading.classList.remove("visible");
+            }
+
+            renderPickupSuccess(
+              result,
+              volume,
+              area,
+              schedule
+            );
+
+            showScreen("successScreen");
+
+            loadHomepageProgress();
+          })
+          .withFailureHandler(function(error) {
+            if (button) {
+              button.disabled = false;
+            }
+
+            if (loading) {
+              loading.classList.remove("visible");
+            }
+
+            handleError(
+              error,
+              "errorBox"
+            );
+          })
+          .createPickupRequest(requestData);
+      })
+      .withFailureHandler(function(error) {
+        if (button) {
+          button.disabled = false;
+        }
+
+        if (loading) {
+          loading.classList.remove("visible");
+        }
+
+        handleError(
+          error,
+          "errorBox"
+        );
+      })
+      .createOrGetSupplier(supplierData);
+  }
+
+
+  function renderPickupSuccess(
+    result,
+    volume,
+    area,
+    schedule
+  ) {
+    const requestId =
+      document.getElementById("requestId");
+
+    const successVolume =
+      document.getElementById("successVolume");
+
+    const successArea =
+      document.getElementById("successArea");
+
+    const successSchedule =
+      document.getElementById("successSchedule");
+
+    const successStatus =
+      document.getElementById("successStatus");
+
+    const id =
+      result &&
+      (
+        result.request_id ||
+        result.requestId ||
+        result.id
+      )
+        ? (
+            result.request_id ||
+            result.requestId ||
+            result.id
+          )
+        : "-";
+
+    if (requestId) {
+      requestId.textContent = id;
+    }
+
+    if (successVolume) {
+      successVolume.textContent =
+        volume + " L";
+    }
+
+    if (successArea) {
+      successArea.textContent =
+        area;
+    }
+
+    if (successSchedule) {
+      successSchedule.textContent =
+        schedule;
+    }
+
+    if (successStatus) {
+      successStatus.textContent =
+        result && result.status
+          ? result.status
+          : "Pending";
+    }
+  }
+
+
+  /* =========================================================
+     ESTIMATED PAYOUT
+     ========================================================= */
+
+  function updateEstimatedPayout() {
+    const volumeInput =
+      document.getElementById("volume");
+
+    const payoutBox =
+      document.getElementById(
+        "payoutEstimateBox"
+      );
+
+    const payoutValue =
+      document.getElementById(
+        "estimatedPayout"
+      );
+
+    const payoutInfo =
+      document.getElementById(
+        "payoutRateInfo"
+      );
+
+    if (!volumeInput) {
+      return;
+    }
+
+    const volume =
+      parseFloat(volumeInput.value);
+
+    if (
+      !Number.isFinite(volume) ||
+      volume <= 0
+    ) {
+      if (payoutBox) {
+        payoutBox.classList.remove("visible");
+      }
+
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result) {
+          return;
+        }
+
+        const payout =
+          result.estimatedPayout ??
+          result.totalPayout ??
+          result.payout ??
+          0;
+
+        const rate =
+          result.payoutPerL ??
+          result.supplierPayoutPerL ??
+          0;
+
+        if (payoutValue) {
+          payoutValue.textContent =
+            formatRupiah(payout);
+        }
+
+        if (payoutInfo) {
+          payoutInfo.textContent =
+            rate
+              ? "Perkiraan berdasarkan payout " +
+                formatRupiah(rate) +
+                "/L."
+              : "Payout reference belum tersedia.";
+        }
+
+        if (payoutBox) {
+          payoutBox.classList.add("visible");
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error(
+          "Failed to calculate estimated payout:",
+          error
+        );
+
+        if (payoutBox) {
+          payoutBox.classList.remove("visible");
+        }
+      })
+      .getEstimatedPayout(volume);
+  }
+
+
+  /* =========================================================
+     HOMEPAGE PROGRESS
+     ========================================================= */
+
+  function loadHomepageProgress() {
+    if (!currentPhone) {
+      const savedPhone =
+        localStorage.getItem(
+          "jemputJelantahPhone"
+        );
+
+      if (savedPhone) {
+        currentPhone = savedPhone;
+      }
+    }
+
+    if (!currentPhone) {
+      updateCollectionProgress({
+        collectedLiters: 0,
+        target: 10,
+        progressPercent: 0
+      });
+
+      return;
+    }
+
+    loadCollectionProgress(
+      currentPhone
+    );
+  }
+
+
+  function loadCollectionProgress(phone) {
+    if (!phone) {
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        updateCollectionProgress(
+          result
+        );
+      })
+      .withFailureHandler(function(error) {
+        console.error(
+          "Failed to load collection progress:",
+          error
+        );
+      })
+      .getCollectionProgressByPhone(phone);
+  }
+
+
+  function updateCollectionProgress(result) {
+    const collected =
+      Number(
+        result &&
+        (
+          result.collectedLiters ??
+          result.collectedVolume ??
+          0
+        )
+      );
+
+    const target =
+      Number(
+        result &&
+        (
+          result.target ??
+          result.targetLiters ??
+          10
+        )
+      );
+
+    let percent =
+      Number(
+        result &&
+        (
+          result.progressPercent ??
+          result.percent ??
+          0
+        )
+      );
+
+    if (
+      !Number.isFinite(percent)
+    ) {
+      percent = 0;
+    }
+
+    percent =
+      Math.max(
+        0,
+        Math.min(100, percent)
+      );
+
+    const number =
+      document.getElementById(
+        "collectionProgressNumber"
+      );
+
+    const percentage =
+      document.getElementById(
+        "collectionProgressPercent"
+      );
+
+    const fill =
+      document.getElementById(
+        "collectionProgressFill"
+      );
+
+    const note =
+      document.getElementById(
+        "collectionProgressNote"
+      );
+
+    if (number) {
+      number.textContent =
+        `${collected} L / ${target} L`;
+    }
+
+    if (percentage) {
+      percentage.textContent =
+        `${Math.round(percent)}%`;
+    }
+
+    if (fill) {
+      fill.style.width =
+        `${percent}%`;
+    }
+
+    if (note) {
+      if (collected >= target) {
+        note.textContent =
+          "Target pengumpulan tercapai.";
+      } else {
+        const remaining =
+          Math.max(
+            0,
+            target - collected
+          );
+
+        note.textContent =
+          `${remaining} L lagi untuk mencapai target.`;
+      }
+    }
+  }
+
+
+  /* =========================================================
+     PRICING REFERENCE
+     ========================================================= */
+
+  function loadCurrentPricing() {
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (
+          !result ||
+          !result.referencePricePerL
+        ) {
+          showPricingUnavailable();
+          return;
+        }
+
+        const price =
+          Number(
+            result.referencePricePerL
+          );
+
+        const priceElement =
+          document.getElementById(
+            "referencePrice"
+          );
+
+        const dateElement =
+          document.getElementById(
+            "referencePriceDate"
+          );
+
+        if (priceElement) {
+          priceElement.textContent =
+            formatRupiah(price) + "/L";
+        }
+
+        if (dateElement) {
+          const date =
+            result.effectiveDate
+              ? formatDate(
+                  result.effectiveDate
+                )
+              : "-";
+
+          dateElement.textContent =
+            "Effective " + date;
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error(
+          "Failed to load pricing:",
+          error
+        );
+
+        showPricingUnavailable();
+      })
+      .getCurrentPricing();
+  }
+
+
+  function showPricingUnavailable() {
+    const priceElement =
+      document.getElementById(
+        "referencePrice"
+      );
+
+    const dateElement =
+      document.getElementById(
+        "referencePriceDate"
+      );
+
+    if (priceElement) {
+      priceElement.textContent =
+        "Unavailable";
+    }
+
+    if (dateElement) {
+      dateElement.textContent =
+        "Reference price unavailable";
+    }
+  }
+
+
+  /* =========================================================
+     WEIGHING & PAYOUT
+     ========================================================= */
+
+  function loadWeighingQueue() {
+    const select =
+      document.getElementById(
+        "weighingRequest"
+      );
+
+    if (!select) {
+      return;
+    }
+
+    select.innerHTML = `
+      <option value="">
+        Memuat request...
+      </option>
+    `;
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        weighingQueue =
+          Array.isArray(result)
+            ? result
+            : [];
+
+        renderWeighingQueue();
+      })
+      .withFailureHandler(function(error) {
+        weighingQueue = [];
+
+        select.innerHTML = `
+          <option value="">
+            Gagal memuat request
+          </option>
+        `;
+
+        handleError(
+          error,
+          "weighingMessage"
+        );
+      })
+      .getWeighingQueue();
+  }
+
+
+  function renderWeighingQueue() {
+    const select =
+      document.getElementById(
+        "weighingRequest"
+      );
+
+    if (!select) {
+      return;
+    }
+
+    if (
+      !weighingQueue ||
+      weighingQueue.length === 0
+    ) {
+      select.innerHTML = `
+        <option value="">
+          Tidak ada request untuk ditimbang
+        </option>
+      `;
+
+      clearWeighingSummary();
+
+      return;
+    }
+
+    select.innerHTML = `
+      <option value="">
+        Pilih request
+      </option>
+    `;
+
+    weighingQueue.forEach(item => {
+      const option =
+        document.createElement("option");
+
+      option.value =
+        item.request_id ||
+        item.requestId ||
+        "";
+
+      const supplierName =
+        item.supplier_name ||
+        item.name ||
+        "Supplier";
+
+      const estimated =
+        item.estimated_volume_l ??
+        item.estimatedVolume ??
+        0;
+
+      option.textContent =
+        `${supplierName} · ${estimated} L`;
+
+      select.appendChild(option);
+    });
+
+    clearWeighingSummary();
+  }
+
+
+  function handleWeighingRequestChange() {
+    const select =
+      document.getElementById(
+        "weighingRequest"
+      );
+
+    const requestId =
+      select
+        ? select.value
+        : "";
+
+    const item =
+      weighingQueue.find(row => {
+        return (
+          String(
+            row.request_id ||
+            row.requestId ||
+            ""
+          ) === String(requestId)
+        );
+      });
+
+    if (!item) {
+      clearWeighingSummary();
+      return;
+    }
+
+    const supplierName =
+      document.getElementById(
+        "weighingSupplierName"
+      );
+
+    const supplierType =
+      document.getElementById(
+        "weighingSupplierType"
+      );
+
+    const area =
+      document.getElementById(
+        "weighingArea"
+      );
+
+    const estimated =
+      document.getElementById(
+        "weighingEstimatedVolume"
+      );
+
+    if (supplierName) {
+      supplierName.textContent =
+        item.supplier_name ||
+        item.name ||
+        "-";
+    }
+
+    if (supplierType) {
+      supplierType.textContent =
+        item.supplier_type ||
+        "-";
+    }
+
+    if (area) {
+      area.textContent =
+        item.area ||
+        "-";
+    }
+
+    if (estimated) {
+      estimated.textContent =
+        (
+          item.estimated_volume_l ??
+          item.estimatedVolume ??
+          0
+        ) + " L";
+    }
+
+    const actualInput =
+      document.getElementById(
+        "actualWeight"
+      );
+
+    if (actualInput) {
+      actualInput.value = "";
+    }
+
+    loadWeighingPrice();
+
+    calculateFinalPayout();
+  }
+
+
+  function loadWeighingPrice() {
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result) {
+          currentSupplierPayoutPerL = 0;
+          return;
+        }
+
+        currentSupplierPayoutPerL =
+          Number(
+            result.supplierPayoutPerL ??
+            result.payoutPerL ??
+            0
+          );
+
+        const priceElement =
+          document.getElementById(
+            "weighingPrice"
+          );
+
+        if (priceElement) {
+          priceElement.textContent =
+            currentSupplierPayoutPerL
+              ? formatRupiah(
+                  currentSupplierPayoutPerL
+                ) + "/L"
+              : "Unavailable";
+        }
+
+        calculateFinalPayout();
+      })
+      .withFailureHandler(function(error) {
+        console.error(
+          "Failed to load weighing price:",
+          error
+        );
+
+        currentSupplierPayoutPerL = 0;
+
+        const priceElement =
+          document.getElementById(
+            "weighingPrice"
+          );
+
+        if (priceElement) {
+          priceElement.textContent =
+            "Unavailable";
+        }
+      })
+      .getCurrentPricing();
+  }
+
+
+  function calculateFinalPayout() {
+    const actualInput =
+      document.getElementById(
+        "actualWeight"
+      );
+
+    const payoutElement =
+      document.getElementById(
+        "finalPayout"
+      );
+
+    if (!actualInput || !payoutElement) {
+      return;
+    }
+
+    const actualVolume =
+      parseFloat(
+        actualInput.value
+      );
+
+    if (
+      !Number.isFinite(actualVolume) ||
+      actualVolume <= 0 ||
+      currentSupplierPayoutPerL <= 0
+    ) {
+      payoutElement.textContent =
+        "Rp-";
+
+      return;
+    }
+
+    const payout =
+      actualVolume *
+      currentSupplierPayoutPerL;
+
+    payoutElement.textContent =
+      formatRupiah(payout);
+  }
+
+
+  function submitWeighing() {
+    hideError("weighingMessage");
+
+    const requestSelect =
+      document.getElementById(
+        "weighingRequest"
+      );
+
+    const actualInput =
+      document.getElementById(
+        "actualWeight"
+      );
+
+    const requestId =
+      requestSelect
+        ? requestSelect.value
+        : "";
+
+    const actualVolume =
+      actualInput
+        ? parseFloat(
+            actualInput.value
+          )
+        : NaN;
+
+    if (!requestId) {
+      showError(
+        "weighingMessage",
+        "Pilih request terlebih dahulu."
+      );
+
+      return;
+    }
+
+    if (
+      !Number.isFinite(actualVolume) ||
+      actualVolume <= 0
+    ) {
+      showError(
+        "weighingMessage",
+        "Actual volume harus lebih besar dari 0 liter."
+      );
+
+      return;
+    }
+
+    const button =
+      document.getElementById(
+        "confirmWeighingButton"
+      );
+
+    if (button) {
+      button.disabled = true;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (button) {
+          button.disabled = false;
+        }
+
+        showWeighingSuccess(
+          result
+        );
+
+        loadWeighingQueue();
+      })
+      .withFailureHandler(function(error) {
+        if (button) {
+          button.disabled = false;
+        }
+
+        handleError(
+          error,
+          "weighingMessage"
+        );
+      })
+      .createWeighing({
+        request_id: requestId,
+        actual_volume_l: actualVolume
+      });
+  }
+
+
+  function showWeighingSuccess(result) {
+    const message =
+      document.getElementById(
+        "weighingMessage"
+      );
+
+    if (!message) {
+      return;
+    }
+
+    const actual =
+      result &&
+      (
+        result.actualVolume ??
+        result.actual_volume_l
+      );
+
+    const payout =
+      result &&
+      (
+        result.totalPayout ??
+        result.total_payout
+      );
+
+    message.textContent =
+      "Penimbangan berhasil. " +
+      "Actual volume: " +
+      (
+        actual !== undefined
+          ? actual + " L"
+          : "-"
+      ) +
+      ". Total payout: " +
+      (
+        payout !== undefined
+          ? formatRupiah(payout)
+          : "Rp-"
+      ) +
+      ".";
+
+    message.classList.add(
+      "visible"
+    );
+  }
+
+
+  function clearWeighingSummary() {
+    const fields = [
+      "weighingSupplierName",
+      "weighingSupplierType",
+      "weighingArea",
+      "weighingEstimatedVolume"
+    ];
+
+    fields.forEach(id => {
+      const element =
+        document.getElementById(id);
+
+      if (element) {
+        element.textContent = "-";
+      }
+    });
+
+    const price =
+      document.getElementById(
+        "weighingPrice"
+      );
+
+    if (price) {
+      price.textContent =
+        "Rp-";
+    }
+
+    const payout =
+      document.getElementById(
+        "finalPayout"
+      );
+
+    if (payout) {
+      payout.textContent =
+        "Rp-";
+    }
+
+    const input =
+      document.getElementById(
+        "actualWeight"
+      );
+
+    if (input) {
+      input.value = "";
+    }
+  }
+
+
+  /* =========================================================
+     ERROR HANDLING
+     ========================================================= */
+
+  function showError(elementId, message) {
+    const element =
+      document.getElementById(
+        elementId
+      );
+
+    if (!element) {
+      return;
+    }
+
+    element.textContent =
+      message || "Terjadi kesalahan.";
+
+    element.classList.add(
+      "visible"
+    );
+  }
+
+
+  function hideError(elementId) {
+    const element =
+      document.getElementById(
+        elementId
+      );
+
+    if (!element) {
+      return;
+    }
+
+    element.textContent = "";
+    element.classList.remove(
+      "visible"
+    );
+  }
+
+
+  function handleError(
+    error,
+    elementId
+  ) {
+    console.error(
+      "Apps Script error:",
+      error
+    );
+
+    const message =
+      error &&
+      error.message
+        ? error.message
+        : "Terjadi kesalahan. Silakan coba lagi.";
+
+    showError(
+      elementId,
+      message
+    );
+  }
+
+
+  /* =========================================================
+     FORMATTING
+     ========================================================= */
+
+  function formatRupiah(value) {
+    const number =
+      Number(value);
+
+    if (!Number.isFinite(number)) {
+      return "Rp-";
+    }
+
+    return new Intl.NumberFormat(
+      "id-ID",
+      {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0
+      }
+    ).format(number);
+  }
+
+
+  function formatDate(value) {
+    if (!value) {
+      return "-";
+    }
+
+    const date =
+      new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return String(value);
+    }
+
+    return new Intl.DateTimeFormat(
+      "id-ID",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      }
+    ).format(date);
+  }
+
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+
+  /* =========================================================
+     LOCAL STORAGE
+     ========================================================= */
+
+  function saveCurrentPhone(phone) {
+    if (!phone) {
+      return;
+    }
+
+    currentPhone = phone;
+
+    localStorage.setItem(
+      "jemputJelantahPhone",
+      phone
+    );
+  }
+
+
+  /* =========================================================
+     INITIALIZATION
+     ========================================================= */
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+      const volumeInput =
+        document.getElementById(
+          "volume"
+        );
+
+      if (volumeInput) {
+        volumeInput.addEventListener(
+          "input",
+          updateEstimatedPayout
+        );
+      }
+
+      const actualWeight =
+        document.getElementById(
+          "actualWeight"
+        );
+
+      if (actualWeight) {
+        actualWeight.addEventListener(
+          "input",
+          calculateFinalPayout
+        );
+      }
+
+      const phoneInput =
+        document.getElementById(
+          "phone"
+        );
+
+      if (phoneInput) {
+        phoneInput.addEventListener(
+          "input",
+          function() {
+            saveCurrentPhone(
+              phoneInput.value.trim()
+            );
+          }
+        );
+      }
+
+      loadHomepageProgress();
+      loadCurrentPricing();
+    }
+  );
+</script>
+```
