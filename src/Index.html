@@ -1,65 +1,114 @@
 <!DOCTYPE html>
-
 <html lang="id">
+
 <head>
   <base target="_top">
 
-<meta name="viewport"
-     content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
   <title>Jemput Jelantah</title>
 
   <?!= include('Styles'); ?>
-
 </head>
+
 
 <body>
 
-<div class="app">
+  <main class="app">
 
-  <!-- HOME -->
+    <!-- =====================================================
+         HOME
+         ===================================================== -->
 
-  <section id="homeScreen" class="screen active">
+    <section
+      id="homeScreen"
+      class="screen active"
+    >
 
-```
-<div class="header">
-  <div class="brand">JEMPUT JELANTAH</div>
+      <div class="container">
 
-  <h1>
-    Jelantah di rumah,<br>
-    kami yang jemput.
-  </h1>
+        <header class="app-header">
+          <div>
+            <div class="brand">
+              Jemput Jelantah
+            </div>
 
-  <p>
-    Kumpulkan minyak jelantah. Pilih jadwal.
-    Kami datang ke area Anda.
-  </p>
-</div>
-
-<div class="content">
-
-  <div class="hero">
-
-    <h2>
-      Jangan biarkan jelantah terbuang.
-    </h2>
-
-    <p>
-      Kumpulkan minyak jelantah dan jadwalkan
-      penjemputan di area Anda.
-    </p>
-
-    <!-- COLLECTION PROGRESS -->
-
-    <div class="progress-box">
-
-      <div class="progress-top">
-
-        <div>
-
-          <div class="progress-label">
-            Progress pengumpulan
+            <div class="brand-subtitle">
+              Used Cooking Oil Collection
+            </div>
           </div>
+        </header>
+
+
+        <div class="hero">
+
+          <div class="eyebrow">
+            Collect Better
+          </div>
+
+          <h1 class="page-title">
+            Kumpulkan minyak jelantah,
+            kami jemput.
+          </h1>
+
+          <p class="hero-description">
+            Gabungkan volume minyak jelantah dari
+            area sekitar agar pickup lebih efisien,
+            dengan penimbangan dan payout yang transparan.
+          </p>
+
+        </div>
+
+
+        <div class="home-actions">
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            onclick="startPickupFlow()"
+          >
+            Mulai Pengumpulan
+          </button>
+
+          <button
+            class="btn btn-secondary"
+            type="button"
+            onclick="goToPhoneCheck()"
+          >
+            Cek Status Pickup
+          </button>
+
+        </div>
+
+
+        <!-- Collection Progress -->
+
+        <div class="progress-card">
+
+          <div class="progress-header">
+
+            <div>
+              <div class="card-title">
+                Progress Pengumpulan
+              </div>
+
+              <div class="card-description">
+                Kumpulan volume dari pickup yang sedang berjalan.
+              </div>
+            </div>
+
+            <div
+              id="collectionProgressPercent"
+              class="progress-percent"
+            >
+              0%
+            </div>
+
+          </div>
+
 
           <div
             id="collectionProgressNumber"
@@ -68,966 +117,974 @@
             0 L / 10 L
           </div>
 
+
+          <div class="progress-track">
+
+            <div
+              id="collectionProgressFill"
+              class="progress-fill"
+              style="width: 0%;"
+            ></div>
+
+          </div>
+
+
+          <div
+            id="collectionProgressNote"
+            class="progress-note"
+          >
+            Mulai pengumpulan untuk menambah volume.
+          </div>
+
         </div>
 
-        <strong id="collectionProgressPercent">
-          0%
-        </strong>
 
-      </div>
+        <!-- Supplier Payout Reference -->
 
-      <div class="progress-track">
+        <div class="price-card">
 
-        <div
-          id="collectionProgressFill"
-          class="progress-fill"
-          style="width:0%"
-        ></div>
-
-      </div>
-
-      <div
-        id="collectionProgressNote"
-        class="small-note"
-      >
-        Masukkan nomor WhatsApp untuk melihat
-        progress pengumpulan Anda.
-      </div>
-
-    </div>
-
-
-    <!-- PRICE REFERENCE -->
-
-    <div class="price-reference">
-
-      <div class="price-reference-header">
-
-        <div>
-
-          <div class="price-reference-label">
+          <div class="price-label">
             Harga Beli Jemput Jelantah
           </div>
 
           <div
             id="referencePrice"
-            class="price-reference-value"
+            class="price-value"
           >
-            Rp-
+            Memuat...
+          </div>
+
+          <div
+            id="referencePriceDate"
+            class="price-date"
+          >
           </div>
 
         </div>
 
-        <div class="price-reference-unit">
-          / liter
+
+        <footer class="app-footer">
+          Jemput Jelantah · Pilot MVP
+        </footer>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         PHONE CHECK
+         ===================================================== -->
+
+    <section
+      id="phoneScreen"
+      class="screen"
+    >
+
+      <div class="container">
+
+        <button
+          class="back-button"
+          type="button"
+          onclick="showScreen('homeScreen')"
+        >
+          ← Kembali
+        </button>
+
+
+        <div class="eyebrow">
+          Pickup Status
+        </div>
+
+        <h1 class="page-title">
+          Cek status pickup
+        </h1>
+
+        <p class="hero-description">
+          Masukkan nomor HP yang digunakan
+          saat membuat pickup request.
+        </p>
+
+
+        <div
+          id="phoneErrorBox"
+          class="error-box"
+        >
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="checkPhone">
+            Nomor HP
+          </label>
+
+          <input
+            id="checkPhone"
+            type="tel"
+            inputmode="numeric"
+            placeholder="Contoh: 08123456789"
+            autocomplete="tel"
+          >
+
+        </div>
+
+
+        <button
+          id="checkPhoneButton"
+          class="btn btn-primary"
+          type="button"
+          onclick="checkUserPhone()"
+        >
+          Cek Status
+        </button>
+
+
+        <div
+          id="phoneLoading"
+          class="loading"
+        >
+          Mengecek data...
         </div>
 
       </div>
 
-      <div
-        id="referencePriceDate"
-        class="small-note"
-      >
-        Mengambil harga terbaru kami...
+    </section>
+
+
+
+    <!-- =====================================================
+         RETURNING USER
+         ===================================================== -->
+
+    <section
+      id="returningScreen"
+      class="screen"
+    >
+
+      <div class="container">
+
+        <button
+          class="back-button"
+          type="button"
+          onclick="showScreen('phoneScreen')"
+        >
+          ← Kembali
+        </button>
+
+
+        <div class="returning-header">
+
+          <div
+            id="returningGreeting"
+            class="returning-greeting"
+          >
+            Halo 👋
+          </div>
+
+        </div>
+
+
+        <div
+          id="returningSupplierCard"
+          class="returning-supplier-card"
+        >
+        </div>
+
+
+        <div class="card">
+
+          <div class="card-title">
+            Riwayat Pickup
+          </div>
+
+          <div
+            id="pickupHistory"
+            class="history-list"
+          >
+          </div>
+
+        </div>
+
+
+        <div style="margin-top: 18px;">
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            onclick="startNewPickup()"
+          >
+            Buat Pickup Baru
+          </button>
+
+        </div>
+
       </div>
 
-      <div class="price-reference-note">
-        Harga beli yang berlaku untuk setiap liter
-        minyak jelantah yang diserahkan. Payout akhir
-        dihitung berdasarkan hasil penimbangan aktual.
+    </section>
+
+
+
+    <!-- =====================================================
+         SUPPLIER TYPE
+         ===================================================== -->
+
+    <section
+      id="typeScreen"
+      class="screen"
+    >
+
+      <div class="container">
+
+        <button
+          class="back-button"
+          type="button"
+          onclick="showScreen('homeScreen')"
+        >
+          ← Kembali
+        </button>
+
+
+        <div class="eyebrow">
+          Step 1
+        </div>
+
+        <h1 class="page-title">
+          Anda mengisi sebagai apa?
+        </h1>
+
+        <p class="hero-description">
+          Pilih tipe supplier untuk menyesuaikan
+          kebutuhan pengumpulan.
+        </p>
+
+
+        <div class="type-grid">
+
+          <button
+            id="umkmCard"
+            class="type-card"
+            type="button"
+            onclick="selectType('UMKM')"
+          >
+
+            <div class="type-card-icon">
+              ◆
+            </div>
+
+            <div class="type-card-title">
+              UMKM Kuliner
+            </div>
+
+            <div class="type-card-description">
+              Untuk usaha kuliner yang menghasilkan
+              minyak jelantah secara rutin.
+            </div>
+
+          </button>
+
+
+          <button
+            id="householdCard"
+            class="type-card"
+            type="button"
+            onclick="selectType('HOUSEHOLD')"
+          >
+
+            <div class="type-card-icon">
+              ○
+            </div>
+
+            <div class="type-card-title">
+              Rumah Tangga
+            </div>
+
+            <div class="type-card-description">
+              Untuk rumah tangga yang ingin
+              mengumpulkan minyak jelantah.
+            </div>
+
+          </button>
+
+        </div>
+
+
+        <button
+          id="continueTypeButton"
+          class="btn btn-primary"
+          type="button"
+          onclick="goToForm()"
+          disabled
+        >
+          Lanjutkan
+        </button>
+
       </div>
 
-    </div>
+    </section>
 
 
-    <!-- PRIMARY ACTIONS -->
 
-    <button onclick="startPickupFlow()">
-      Mulai Pengumpulan
-    </button>
+    <!-- =====================================================
+         PICKUP FORM
+         ===================================================== -->
 
-    <div class="button-gap"></div>
-
-    <button
-      class="outline"
-      onclick="goToPhoneCheck()"
+    <section
+      id="formScreen"
+      class="screen"
     >
-      Cek Status Pickup
-    </button>
 
-    <div class="button-gap"></div>
+      <div class="container">
 
-    <button
-      class="outline"
-      onclick="showScreen('weighingScreen')"
-    >
-      Operations — Weighing & Payout
-    </button>
+        <button
+          class="back-button"
+          type="button"
+          onclick="showScreen('typeScreen')"
+        >
+          ← Kembali
+        </button>
 
 
-    <!-- HOW IT WORKS -->
+        <div class="eyebrow">
+          Step 2
+        </div>
 
-    <div class="card">
+        <h1 class="page-title">
+          Detail pengumpulan
+        </h1>
 
-      <div class="card-title">
-        Bagaimana cara kerjanya?
+        <p class="hero-description">
+          Lengkapi informasi agar pickup dapat
+          dikelompokkan berdasarkan area dan jadwal.
+        </p>
+
+
+        <div class="card">
+
+          <div class="card-title">
+            Tipe Supplier
+          </div>
+
+          <div
+            id="selectedTypeLabel"
+            class="card-description"
+          >
+            Belum dipilih
+          </div>
+
+        </div>
+
+
+        <div
+          id="errorBox"
+          class="error-box"
+        >
+        </div>
+
+
+        <div class="form-section">
+
+          <!-- Name -->
+
+          <div class="form-group">
+
+            <label for="name">
+              Nama
+            </label>
+
+            <input
+              id="name"
+              type="text"
+              placeholder="Nama supplier"
+              autocomplete="name"
+            >
+
+          </div>
+
+
+          <!-- Phone -->
+
+          <div class="form-group">
+
+            <label for="phone">
+              Nomor HP
+            </label>
+
+            <input
+              id="phone"
+              type="tel"
+              inputmode="numeric"
+              placeholder="Contoh: 08123456789"
+              autocomplete="tel"
+            >
+
+          </div>
+
+
+          <!-- Area -->
+
+          <div class="form-group">
+
+            <label for="area">
+              Area Pickup
+            </label>
+
+            <select id="area">
+
+              <option value="">
+                Pilih area
+              </option>
+
+              <option value="Patrang">
+                Patrang
+              </option>
+
+              <option value="Sumbersari">
+                Sumbersari
+              </option>
+
+              <option value="Kaliwates">
+                Kaliwates
+              </option>
+
+              <option value="Ajung">
+                Ajung
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- Address -->
+
+          <div class="form-group">
+
+            <label for="address">
+              Alamat Pickup
+            </label>
+
+            <textarea
+              id="address"
+              placeholder="Masukkan alamat lengkap pickup"
+            ></textarea>
+
+          </div>
+
+
+          <!-- Estimated Volume -->
+
+          <div class="form-group">
+
+            <label for="volume">
+              Estimasi Volume
+            </label>
+
+            <input
+              id="volume"
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="Contoh: 5"
+            >
+
+          </div>
+
+
+          <!-- Payout Estimate -->
+
+          <div
+            id="payoutEstimateBox"
+            class="payout-estimate"
+            style="display: none;"
+          >
+
+            <div class="payout-estimate-label">
+              Estimasi payout
+            </div>
+
+            <div
+              id="estimatedPayout"
+              class="payout-estimate-value"
+            >
+              Rp 0
+            </div>
+
+            <div
+              id="payoutRateInfo"
+              class="payout-rate"
+            >
+            </div>
+
+          </div>
+
+
+          <!-- Schedule -->
+
+          <div class="form-group">
+
+            <label for="schedule">
+              Jadwal Pickup
+            </label>
+
+            <select id="schedule">
+
+              <option value="">
+                Pilih jadwal
+              </option>
+
+              <option value="Kamis 09:00-12:00">
+                Kamis · 09:00–12:00
+              </option>
+
+              <option value="Kamis 13:00-16:00">
+                Kamis · 13:00–16:00
+              </option>
+
+              <option value="Sabtu 09:00-12:00">
+                Sabtu · 09:00–12:00
+              </option>
+
+              <option value="Sabtu 13:00-16:00">
+                Sabtu · 13:00–16:00
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- Notes -->
+
+          <div class="form-group">
+
+            <label for="notes">
+              Catatan
+              <span>(opsional)</span>
+            </label>
+
+            <textarea
+              id="notes"
+              placeholder="Tambahkan catatan jika diperlukan"
+            ></textarea>
+
+          </div>
+
+
+          <button
+            id="submitButton"
+            class="btn btn-primary"
+            type="button"
+            onclick="submitPickup()"
+          >
+            Buat Pickup Request
+          </button>
+
+
+          <div
+            id="loading"
+            class="loading"
+          >
+            Menyimpan pickup request...
+          </div>
+
+        </div>
+
       </div>
 
-      <div class="card-description">
+    </section>
 
-        1. Kumpulkan minyak jelantah<br>
-        2. Ajukan penjemputan<br>
-        3. Pilih jadwal berdasarkan area<br>
-        4. Duduk manis, sembari menunggu kami datang
-        ke lokasi Anda<br>
-        5. Kami timbang dan bayar
+
+
+    <!-- =====================================================
+         SUCCESS
+         ===================================================== -->
+
+    <section
+      id="successScreen"
+      class="screen"
+    >
+
+      <div class="container">
+
+        <div class="success-wrapper">
+
+          <div class="success-icon">
+            ✓
+          </div>
+
+          <h1 class="success-title">
+            Pickup request dibuat
+          </h1>
+
+          <p class="success-description">
+            Request kamu sudah tercatat dan akan
+            dikelompokkan berdasarkan area dan jadwal.
+          </p>
+
+
+          <div class="success-summary">
+
+            <div class="summary-row">
+
+              <div class="summary-label">
+                Request ID
+              </div>
+
+              <div
+                id="requestId"
+                class="summary-value"
+              >
+                -
+              </div>
+
+            </div>
+
+
+            <div class="summary-row">
+
+              <div class="summary-label">
+                Estimasi Volume
+              </div>
+
+              <div
+                id="successVolume"
+                class="summary-value"
+              >
+                -
+              </div>
+
+            </div>
+
+
+            <div class="summary-row">
+
+              <div class="summary-label">
+                Area
+              </div>
+
+              <div
+                id="successArea"
+                class="summary-value"
+              >
+                -
+              </div>
+
+            </div>
+
+
+            <div class="summary-row">
+
+              <div class="summary-label">
+                Jadwal
+              </div>
+
+              <div
+                id="successSchedule"
+                class="summary-value"
+              >
+                -
+              </div>
+
+            </div>
+
+
+            <div class="summary-row">
+
+              <div class="summary-label">
+                Status
+              </div>
+
+              <div
+                id="successStatus"
+                class="summary-value"
+              >
+                Pending
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            onclick="showScreen('homeScreen')"
+          >
+            Kembali ke Home
+          </button>
+
+        </div>
 
       </div>
 
-    </div>
+    </section>
 
-  </div>
 
-</div>
-```
 
-  </section>
+    <!-- =====================================================
+         OPERATIONS — WEIGHING
+         ===================================================== -->
 
-  <!-- PHONE CHECK -->
-
-  <section id="phoneScreen" class="screen">
-
-```
-<div class="top-back">
-
-  <button
-    class="back"
-    onclick="showScreen('homeScreen')"
-  >
-    ← Kembali
-  </button>
-
-</div>
-
-<div class="header">
-
-  <div class="brand">
-    JEMPUT JELANTAH
-  </div>
-
-  <h1>
-    Cek akun<br>
-    Anda.
-  </h1>
-
-  <p>
-    Masukkan nomor WhatsApp untuk melanjutkan
-    atau melihat riwayat penjemputan.
-  </p>
-
-</div>
-
-<div class="content">
-
-  <div
-    id="phoneErrorBox"
-    class="error"
-  ></div>
-
-  <div class="card">
-
-    <div class="form-group">
-
-      <label for="checkPhone">
-        Nomor WhatsApp
-      </label>
-
-      <input
-        id="checkPhone"
-        type="tel"
-        placeholder="08xxxxxxxxxx"
-      >
-
-    </div>
-
-    <button
-      id="checkPhoneButton"
-      onclick="checkUserPhone()"
-    >
-      Lanjut
-    </button>
-
-    <div
-      id="phoneLoading"
-      class="loading"
-    >
-      Sedang memeriksa data...
-    </div>
-
-  </div>
-
-</div>
-```
-
-  </section>
-
-  <!-- RETURNING USER -->
-
-  <section id="returningScreen" class="screen">
-
-```
-<div class="top-back">
-
-  <button
-    class="back"
-    onclick="showScreen('homeScreen')"
-  >
-    ← Kembali
-  </button>
-
-</div>
-
-<div class="header">
-
-  <div class="brand">
-    JEMPUT JELANTAH
-  </div>
-
-  <h1 id="returningGreeting">
-    Selamat datang kembali.
-  </h1>
-
-  <p>
-    Berikut riwayat penjemputan Anda.
-  </p>
-
-</div>
-
-<div class="content">
-
-  <div
-    id="returningSupplierCard"
-    class="card"
-  ></div>
-
-  <div class="card">
-
-    <div class="card-title">
-      Riwayat Penjemputan
-    </div>
-
-    <div
-      id="pickupHistory"
-      style="margin-top:14px"
-    >
-      Belum ada riwayat penjemputan.
-    </div>
-
-  </div>
-
-  <button onclick="startNewPickup()">
-    Ajukan Pickup Baru
-  </button>
-
-</div>
-```
-
-  </section>
-
-  <!-- SUPPLIER TYPE -->
-
-  <section id="typeScreen" class="screen">
-
-```
-<div class="top-back">
-
-  <button
-    class="back"
-    onclick="showScreen('homeScreen')"
-  >
-    ← Kembali
-  </button>
-
-</div>
-
-<div class="header">
-
-  <div class="brand">
-    JEMPUT JELANTAH
-  </div>
-
-  <h1>
-    Anda mengumpulkan<br>
-    sebagai apa?
-  </h1>
-
-  <p>
-    Pilih sesuai aktivitas Anda.
-  </p>
-
-</div>
-
-<div class="content">
-
-  <div class="type-grid">
-
-    <div
-      id="umkmCard"
-      class="type-card"
-      onclick="selectType('UMKM')"
+    <section
+      id="weighingScreen"
+      class="screen"
     >
 
-      <div class="type-icon">
-        🍳
+      <div class="container">
+
+        <button
+          class="back-button"
+          type="button"
+          onclick="showScreen('homeScreen')"
+        >
+          ← Kembali
+        </button>
+
+
+        <div class="operations-header">
+
+          <div class="operations-badge">
+            Operations
+          </div>
+
+          <h1 class="page-title">
+            Penimbangan
+          </h1>
+
+          <p class="hero-description">
+            Pilih pickup yang sudah dikumpulkan,
+            masukkan volume aktual, lalu konfirmasi payout.
+          </p>
+
+        </div>
+
+
+        <!-- Request Selection -->
+
+        <div class="card">
+
+          <div class="card-title">
+            Pickup Request
+          </div>
+
+          <div class="card-description">
+            Pilih request yang akan diproses.
+          </div>
+
+
+          <div class="form-group" style="margin-top: 16px;">
+
+            <label for="weighingRequest">
+              Request
+            </label>
+
+            <select
+              id="weighingRequest"
+              onchange="handleWeighingRequestChange()"
+            >
+
+              <option value="">
+                Memuat pickup request...
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <!-- Request Summary -->
+
+        <div
+          id="weighingRequestSummary"
+          class="weighing-summary"
+        >
+
+          <div class="card-title">
+            Detail Pickup
+          </div>
+
+
+          <div class="weighing-summary-grid">
+
+            <div class="weighing-summary-item">
+
+              <div class="weighing-summary-label">
+                Supplier
+              </div>
+
+              <div
+                id="weighingSupplierName"
+                class="weighing-summary-value"
+              >
+                -
+              </div>
+
+            </div>
+
+
+            <div class="weighing-summary-item">
+
+              <div class="weighing-summary-label">
+                Tipe
+              </div>
+
+              <div
+                id="weighingSupplierType"
+                class="weighing-summary-value"
+              >
+                -
+              </div>
+
+            </div>
+
+
+            <div class="weighing-summary-item">
+
+              <div class="weighing-summary-label">
+                Area
+              </div>
+
+              <div
+                id="weighingArea"
+                class="weighing-summary-value"
+              >
+                -
+              </div>
+
+            </div>
+
+
+            <div class="weighing-summary-item">
+
+              <div class="weighing-summary-label">
+                Estimasi
+              </div>
+
+              <div
+                id="weighingEstimatedVolume"
+                class="weighing-summary-value"
+              >
+                -
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- Weighing -->
+
+        <div
+          id="weighingInputCard"
+          class="card weighing-input-card"
+        >
+
+          <div class="card-title">
+            Hasil Penimbangan
+          </div>
+
+          <div class="card-description">
+            Masukkan volume aktual setelah minyak ditimbang.
+          </div>
+
+
+          <div class="form-group" style="margin-top: 18px;">
+
+            <label for="actualWeight">
+              Actual Weight
+            </label>
+
+            <input
+              id="actualWeight"
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="Contoh: 8"
+              oninput="calculateFinalPayout()"
+            >
+
+          </div>
+
+
+          <!-- Current payout rate -->
+
+          <div class="weighing-price">
+
+            <div class="weighing-price-label">
+              Harga Beli Supplier
+            </div>
+
+            <div
+              id="weighingPrice"
+              class="weighing-price-value"
+            >
+              Memuat...
+            </div>
+
+          </div>
+
+
+          <!-- Final payout -->
+
+          <div class="final-payout">
+
+            <div class="final-payout-label">
+              Total Payout
+            </div>
+
+            <div
+              id="finalPayout"
+              class="final-payout-value"
+            >
+              Rp 0
+            </div>
+
+          </div>
+
+
+          <div
+            id="weighingMessage"
+            class="weighing-message"
+          >
+          </div>
+
+
+          <button
+            id="confirmWeighingButton"
+            class="btn btn-primary"
+            type="button"
+            onclick="submitWeighing()"
+          >
+            Konfirmasi Penimbangan
+          </button>
+
+        </div>
+
+
+        <footer class="app-footer">
+          Operations · Weighing & Payout
+        </footer>
+
       </div>
 
-      <div class="type-title">
-        UMKM Kuliner
-      </div>
+    </section>
 
-      <div class="type-description">
-        Untuk warung, restoran kecil,
-        katering, dan usaha makanan.
-      </div>
+  </main>
 
-    </div>
 
+  <!-- =======================================================
+       CLIENT SCRIPT
+       ======================================================= -->
 
-    <div
-      id="householdCard"
-      class="type-card"
-      onclick="selectType('Rumah Tangga')"
-    >
-
-      <div class="type-icon">
-        🏠
-      </div>
-
-      <div class="type-title">
-        Rumah Tangga
-      </div>
-
-      <div class="type-description">
-        Untuk penggunaan rumah tangga
-        sehari-hari.
-      </div>
-
-    </div>
-
-  </div>
-
-  <div style="margin-top:20px">
-
-    <button
-      id="continueTypeButton"
-      onclick="goToForm()"
-      disabled
-    >
-      Lanjut
-    </button>
-
-  </div>
-
-</div>
-```
-
-  </section>
-
-  <!-- PICKUP FORM -->
-
-  <section id="formScreen" class="screen">
-
-```
-<div class="top-back">
-
-  <button
-    class="back"
-    onclick="showScreen('typeScreen')"
-  >
-    ← Kembali
-  </button>
-
-</div>
-
-<div class="header">
-
-  <div class="brand">
-    DATA PENJEMPUTAN
-  </div>
-
-  <h1>
-    Isi detail<br>
-    pengumpulan.
-  </h1>
-
-  <p>
-    Data ini digunakan untuk mengatur
-    penjemputan di area Anda.
-  </p>
-
-</div>
-
-<div class="content">
-
-  <div
-    id="errorBox"
-    class="error"
-  ></div>
-
-
-  <div class="form-group">
-
-    <label for="name">
-      Nama
-    </label>
-
-    <input
-      id="name"
-      type="text"
-      placeholder="Nama Anda"
-    >
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="phone">
-      Nomor WhatsApp
-    </label>
-
-    <input
-      id="phone"
-      type="tel"
-      placeholder="08xxxxxxxxxx"
-    >
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="area">
-      Area
-    </label>
-
-    <select id="area">
-
-      <option value="">
-        Pilih area
-      </option>
-
-      <option value="Patrang">
-        Patrang
-      </option>
-
-      <option value="Sumbersari">
-        Sumbersari
-      </option>
-
-      <option value="Kaliwates">
-        Kaliwates
-      </option>
-
-      <option value="Ajung">
-        Ajung
-      </option>
-
-    </select>
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="address">
-      Alamat penjemputan
-    </label>
-
-    <textarea
-      id="address"
-      placeholder="Contoh: Jl. Mawar No. 10"
-    ></textarea>
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="volume">
-      Perkiraan minyak jelantah (liter)
-    </label>
-
-    <input
-      id="volume"
-      type="number"
-      min="1"
-      step="0.5"
-      placeholder="Contoh: 15"
-    >
-
-  </div>
-
-
-  <!-- ESTIMATED PAYOUT -->
-
-  <div
-    class="payout-estimate"
-    id="payoutEstimateBox"
-    style="display:none;"
-  >
-
-    <div class="small-note">
-      Estimasi payout
-    </div>
-
-    <strong id="estimatedPayout">
-      Rp0
-    </strong>
-
-    <div
-      id="payoutRateInfo"
-      class="small-note"
-    >
-      Berdasarkan harga payout yang berlaku.
-    </div>
-
-    <div class="small-note">
-      Pembayaran final mengikuti hasil
-      penimbangan aktual.
-    </div>
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="schedule">
-      Pilihan jadwal
-    </label>
-
-    <select id="schedule">
-
-      <option value="">
-        Pilih jadwal
-      </option>
-
-      <option value="Kamis 09:00-12:00">
-        Kamis · 09:00–12:00
-      </option>
-
-      <option value="Kamis 13:00-16:00">
-        Kamis · 13:00–16:00
-      </option>
-
-      <option value="Sabtu 09:00-12:00">
-        Sabtu · 09:00–12:00
-      </option>
-
-      <option value="Sabtu 13:00-16:00">
-        Sabtu · 13:00–16:00
-      </option>
-
-    </select>
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="notes">
-      Catatan (opsional)
-    </label>
-
-    <textarea
-      id="notes"
-      placeholder="Contoh: minyak sudah disaring"
-    ></textarea>
-
-  </div>
-
-
-  <button
-    id="submitButton"
-    onclick="submitPickup()"
-  >
-    Ajukan Penjemputan
-  </button>
-
-  <div
-    id="loading"
-    class="loading"
-  >
-    Sedang mengirim data...
-  </div>
-
-</div>
-```
-
-  </section>
-
-  <!-- SUCCESS -->
-
-  <section id="successScreen" class="screen">
-
-```
-<div class="success">
-
-  <div class="success-icon">
-    ✓
-  </div>
-
-  <h2>
-    Permintaan terkirim.
-  </h2>
-
-  <p>
-    Data Anda sudah masuk ke sistem
-    Jemput Jelantah.
-  </p>
-
-  <div
-    id="requestId"
-    class="request-id"
-  >
-    Request ID
-  </div>
-
-
-  <!-- PICKUP DETAIL -->
-
-  <div
-    class="card"
-    style="text-align:left"
-  >
-
-    <div class="card-title">
-      Detail Penjemputan
-    </div>
-
-    <div
-      class="card-description"
-      style="margin-bottom:0"
-    >
-
-      <strong id="successVolume">
-        -
-      </strong>
-
-      <br>
-
-      Area:
-      <span id="successArea">
-        -
-      </span>
-
-      <br>
-
-      Jadwal:
-      <span id="successSchedule">
-        -
-      </span>
-
-    </div>
-
-
-    <div
-      style="
-        margin-top:12px;
-        padding-top:12px;
-        border-top:1px solid #e9e9e9;
-      "
-    >
-
-      <div class="small-note">
-        Status
-      </div>
-
-      <strong id="successStatus">
-        Menunggu Penjemputan
-      </strong>
-
-    </div>
-
-  </div>
-
-
-  <!-- NEXT STEP -->
-
-  <div
-    class="card"
-    style="text-align:left"
-  >
-
-    <div class="card-title">
-      Langkah berikutnya
-    </div>
-
-    <div
-      class="card-description"
-      style="margin-bottom:0"
-    >
-
-      Tim akan mengelompokkan permintaan
-      berdasarkan area dan jadwal untuk
-      menentukan rute penjemputan.
-
-    </div>
-
-  </div>
-
-
-  <button onclick="showScreen('homeScreen')">
-    Kembali ke Beranda
-  </button>
-
-</div>
-```
-
-  </section>
-
-  <!-- OPERATIONS: WEIGHING & PAYOUT -->
-
-  <section id="weighingScreen" class="screen">
-
-```
-<div class="top-back">
-
-  <button
-    class="back"
-    onclick="showScreen('homeScreen')"
-  >
-    ← Kembali
-  </button>
-
-</div>
-
-
-<div class="header">
-
-  <div class="brand">
-    OPERATIONS
-  </div>
-
-  <h1>
-    Weighing<br>
-    & Payout.
-  </h1>
-
-  <p>
-    Catat hasil penimbangan aktual
-    dan pembayaran supplier.
-  </p>
-
-</div>
-
-
-<div class="content">
-
-
-  <!-- PICKUP REQUEST -->
-
-  <div class="card">
-
-    <div class="card-title">
-      Pickup Request
-    </div>
-
-    <div class="card-description">
-      Pilih permintaan pickup yang
-      sudah siap untuk ditimbang.
-    </div>
-
-
-    <div class="form-group">
-
-      <label for="weighingRequest">
-        Request ID
-      </label>
-
-      <select
-        id="weighingRequest"
-        onchange="handleWeighingRequestChange()"
-      >
-
-        <option value="">
-          Pilih pickup request
-        </option>
-
-      </select>
-
-    </div>
-
-  </div>
-
-
-  <!-- REQUEST SUMMARY -->
-
-  <div
-    id="weighingRequestSummary"
-    class="card"
-    style="display:none;"
-  >
-
-    <div class="card-title">
-      Detail Pickup
-    </div>
-
-    <div
-      class="card-description"
-      style="margin-bottom:0;"
-    >
-
-      <strong id="weighingSupplierName">
-        -
-      </strong>
-
-      <br>
-
-      Tipe:
-      <span id="weighingSupplierType">
-        -
-      </span>
-
-      <br>
-
-      Area:
-      <span id="weighingArea">
-        -
-      </span>
-
-      <br>
-
-      Estimasi:
-      <strong>
-        <span id="weighingEstimatedVolume">
-          0
-        </span>
-        L
-      </strong>
-
-    </div>
-
-  </div>
-
-
-  <!-- ACTUAL WEIGHT -->
-
-  <div
-    id="weighingInputCard"
-    class="card"
-    style="display:none;"
-  >
-
-    <div class="card-title">
-      Hasil Penimbangan
-    </div>
-
-    <div class="card-description">
-      Masukkan volume aktual setelah
-      minyak ditimbang.
-    </div>
-
-
-    <div class="form-group">
-
-      <label for="actualWeight">
-        Actual Weight
-      </label>
-
-      <input
-        id="actualWeight"
-        type="number"
-        min="0"
-        step="0.1"
-        placeholder="Contoh: 7.8"
-        oninput="calculateFinalPayout()"
-      >
-
-    </div>
-
-
-    <!-- BUYING PRICE -->
-
-    <div class="payout-estimate">
-
-      <div class="small-note">
-        Harga Beli Jemput Jelantah
-      </div>
-
-      <strong id="weighingPrice">
-        Rp0
-      </strong>
-
-      <div class="small-note">
-        Harga per liter yang berlaku.
-      </div>
-
-    </div>
-
-
-    <!-- FINAL PAYOUT -->
-
-    <div
-      style="
-        margin-top:12px;
-        padding:15px;
-        border-left:3px solid #FFC300;
-        border-radius:7px;
-        background:#FFF9E8;
-      "
-    >
-
-      <div class="small-note">
-        Final Payout
-      </div>
-
-      <strong
-        id="finalPayout"
-        style="
-          display:block;
-          margin-top:3px;
-          font-size:24px;
-        "
-      >
-        Rp0
-      </strong>
-
-      <div class="small-note">
-        Pembayaran berdasarkan hasil
-        penimbangan aktual.
-      </div>
-
-    </div>
-
-
-    <!-- CONFIRM -->
-
-    <button
-      id="confirmWeighingButton"
-      onclick="submitWeighing()"
-      style="margin-top:16px;"
-    >
-      Konfirmasi Weighing & Payout
-    </button>
-
-
-    <div
-      id="weighingMessage"
-      class="small-note"
-      style="display:none;"
-    ></div>
-
-  </div>
-
-</div>
-```
-
-  </section>
-
-</div>
-
-<?!= include('Scripts'); ?>
+  <?!= include('Scripts'); ?>
 
 </body>
+
 </html>
