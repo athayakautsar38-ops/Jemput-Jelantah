@@ -1,9 +1,26 @@
-/*************************************************
- * JEMPUT JELANTAH — MVP BACKEND
- * Google Apps Script + Google Sheets
+*************************************************
+ * JEMPUT JELANTAH
+ * Backend — Google Apps Script
+ *
+ * Architecture:
+ * Web App
+ *   ↓
+ * Apps Script Backend
+ *   ↓
+ * Google Sheets
+ *
+ * Core Loop:
+ * COLLECT → SCHEDULE → AGGREGATE → TRACK
+ * → WEIGH → GET PAID → VALIDATE
  *************************************************/
 
+
+/* =================================================
+   1. CONFIGURATION
+   ================================================= */
+
 const CONFIG = {
+
   SHEETS: {
     SUPPLIERS: 'SUPPLIERS',
     PICKUP_REQUESTS: 'PICKUP_REQUESTS',
@@ -12,215 +29,430 @@ const CONFIG = {
     DASHBOARD: 'DASHBOARD',
     VALIDATION: 'VALIDATION',
     PRICING: 'PRICING'
+  },
+
+  BUSINESS_RULES: {
+    // Internal pilot operating threshold.
+    // This is NOT an industry benchmark or break-even point.
+    ROUTE_THRESHOLD_L: 50,
+
+    // Supplier collection progress target.
+    COLLECTION_TARGET_L: 10
+  },
+
+  CACHE: {
+    PRICING_SECONDS: 60,
+    WEIGHING_QUEUE_SECONDS: 30
   }
 };
 
 
-/**
- * =========================
- * WEB APP ENTRY POINT
- * =========================
- */
+/* =================================================
+   2. WEB APP
+   ================================================= */
 
+/**
+ * Main Web App entry point.
+ */
 function doGet() {
   return HtmlService
-    .createHtmlOutputFromFile('Index')
+    .createTemplateFromFile('Index')
+    .evaluate()
     .setTitle('Jemput Jelantah')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+
+/**
+ * Optional JSON endpoint.
+ *
+ * This is kept for external integrations.
+ * The main frontend uses google.script.run.
+ */
 function doPost(e) {
+
   try {
 
-    if (!e || !e.postData || !e.postData.contents) {
-      return jsonResponse({
-        success: false,
-        error: 'Request body is empty.'
-      });
-    }
+    const payload = JSON.parse(
+      e.postData.contents || '{}'
+    );
 
-    const data =
-      JSON.parse(e.postData.contents);
+    const action = payload.action;
+    const data = payload.data || {};
 
-    const action =
-      data.action;
+    let result;
 
     switch (action) {
 
-      // ==========================================
-      // SUPPLIER
-      // ==========================================
-
       case 'createSupplier':
-        return jsonResponse(
-          createSupplier(data)
-        );
-
+        result = createSupplier(data);
+        break;
 
       case 'createOrGetSupplier':
-        return jsonResponse(
-          createOrGetSupplier(data)
-        );
-
+        result = createOrGetSupplier(data);
+        break;
 
       case 'getSupplier':
-        return jsonResponse(
-          getSupplier(data.supplierId)
-        );
-
+        result = getSupplier(data.supplierId);
+        break;
 
       case 'getSupplierByPhone':
-        return jsonResponse(
-          getSupplierByPhone(data.phone)
-        );
-
-
-      // ==========================================
-      // PICKUP
-      // ==========================================
+        result = getSupplierByPhone(data.phone);
+        break;
 
       case 'createPickupRequest':
-        return jsonResponse(
-          createPickupRequest(data)
-        );
-
+        result = createPickupRequest(data);
+        break;
 
       case 'getPickupHistory':
-        return jsonResponse(
-          getPickupHistory(data.supplierId)
-        );
-
+        result = getPickupHistory(data.supplierId);
+        break;
 
       case 'getPickupHistoryByPhone':
-        return jsonResponse(
-          getPickupHistoryByPhone(data.phone)
-        );
-
-
-      // ==========================================
-      // WEIGHING
-      // ==========================================
+        result = getPickupHistoryByPhone(data.phone);
+        break;
 
       case 'createWeighing':
-        return jsonResponse(
-          createWeighing(data)
-        );
-
-
-      // ==========================================
-      // DASHBOARD
-      // ==========================================
+        result = createWeighing(data);
+        break;
 
       case 'getDashboard':
-        return jsonResponse(
-          getDashboard()
-        );
-
+        result = getDashboard();
+        break;
 
       case 'getRoutes':
-        return jsonResponse(
-          getRoutes()
-        );
-
-      
-      // ==========================================
-      // PRICING
-      // ==========================================
+        result = getRoutes();
+        break;
 
       case 'getPricing':
-        return jsonResponse(
-          getCurrentPricing()
-        );
-
-
-      // ==========================================
-      // UNKNOWN ACTION
-      // ==========================================
+        result = getCurrentPricing();
+        break;
 
       default:
-
-        return jsonResponse({
-          success: false,
-          error:
-            'Unknown action: ' + action
-        });
-
+        throw new Error('Unknown action: ' + action);
     }
+
+    return jsonResponse({
+      success: true,
+      data: result
+    });
 
   } catch (error) {
 
     return jsonResponse({
       success: false,
-      error: error.message
+      message: error.message
     });
-
   }
 }
 
 
 /**
- * =========================
- * SUPPLIER
- * =========================
+ * Allows HTML files to include other Apps Script files.
  */
+function include(filename) {
+  return HtmlService
+    .createHtmlOutputFromFile(filename)
+    .getContent();
+}
 
+
+/* =================================================
+   3. SUPPLIER MANAGEMENT
+   ================================================= */
+
+/**
+ * Create a new supplier.
+ *
+ * Sheet:
+ * SUPPLIERS
+ *
+ * Columns:
+ * A Supplier ID
+ * B Name
+ * C Phone
+ * D Supplier Type
+ * E Area
+ * F Created At
+ */
 function createSupplier(data) {
 
   validateRequired(data, [
-    'supplierType',
     'name',
     'phone',
+    'supplierType',
     'area'
   ]);
 
   const sheet = getSheet(CONFIG.SHEETS.SUPPLIERS);
 
+  const phone = normalizePhone(data.phone);
+
+  if (!phone) {
+    throw new Error('Nomor telepon tidak valid.');
+  }
+
+  const existingSupplier = findSupplierByPhone(phone);
+
+  if (existingSupplier) {
+    return existingSupplier;
+  }
+
   const supplierId = generateId('SUP');
 
   const row = [
     supplierId,
-    data.supplierType,
-    data.name,
-    data.phone,
-    data.area,
-    data.address || '',
-    Number(data.typicalVolumeL) || 0,
-    data.collectionPreference || '',
-    'Active',
+    String(data.name).trim(),
+    phone,
+    String(data.supplierType).trim(),
+    String(data.area).trim(),
     new Date()
   ];
 
   sheet.appendRow(row);
 
   return {
-    success: true,
     supplierId: supplierId,
-    message: 'Supplier successfully created.'
+    name: row[1],
+    phone: row[2],
+    supplierType: row[3],
+    area: row[4]
   };
 }
 
 
 /**
- * =========================
- * PICKUP REQUEST
- * =========================
+ * Find supplier by ID.
  */
+function getSupplier(supplierId) {
 
+  if (!supplierId) {
+    throw new Error('Supplier ID wajib diisi.');
+  }
+
+  const supplier = findSupplier(supplierId);
+
+  if (!supplier) {
+    throw new Error('Supplier tidak ditemukan.');
+  }
+
+  return supplier;
+}
+
+
+/**
+ * Internal supplier lookup by ID.
+ */
+function findSupplier(supplierId) {
+
+  const sheet = getSheet(CONFIG.SHEETS.SUPPLIERS);
+  const values = sheet.getDataRange().getValues();
+
+  if (values.length <= 1) {
+    return null;
+  }
+
+  for (let i = 1; i < values.length; i++) {
+
+    const row = values[i];
+
+    if (String(row[0]) === String(supplierId)) {
+
+      return {
+        supplierId: row[0],
+        name: row[1],
+        phone: row[2],
+        supplierType: row[3],
+        area: row[4],
+        createdAt: row[5]
+      };
+    }
+  }
+
+  return null;
+}
+
+
+/**
+ * Normalize phone number for consistent lookup.
+ */
+function normalizePhone(phone) {
+
+  if (!phone) {
+    return '';
+  }
+
+  let value = String(phone).trim();
+
+  value = value.replace(/\s+/g, '');
+  value = value.replace(/[-().]/g, '');
+
+  if (value.startsWith('+62')) {
+    value = '0' + value.substring(3);
+  }
+
+  if (value.startsWith('62')) {
+    value = '0' + value.substring(2);
+  }
+
+  return value;
+}
+
+
+/**
+ * Display phone number in Indonesian format.
+ */
+function displayPhone(phone) {
+
+  const normalized = normalizePhone(phone);
+
+  if (!normalized) {
+    return '';
+  }
+
+  return normalized;
+}
+
+
+/**
+ * Find supplier using normalized phone.
+ */
+function findSupplierByPhone(phone) {
+
+  const normalizedPhone = normalizePhone(phone);
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  const sheet = getSheet(CONFIG.SHEETS.SUPPLIERS);
+  const values = sheet.getDataRange().getValues();
+
+  if (values.length <= 1) {
+    return null;
+  }
+
+  for (let i = 1; i < values.length; i++) {
+
+    const row = values[i];
+
+    const storedPhone = normalizePhone(row[2]);
+
+    if (storedPhone === normalizedPhone) {
+
+      return {
+        supplierId: row[0],
+        name: row[1],
+        phone: displayPhone(row[2]),
+        supplierType: row[3],
+        area: row[4],
+        createdAt: row[5]
+      };
+    }
+  }
+
+  return null;
+}
+
+
+/**
+ * Public supplier lookup by phone.
+ */
+function getSupplierByPhone(phone) {
+
+  const supplier = findSupplierByPhone(phone);
+
+  if (!supplier) {
+    return {
+      success: false,
+      message: 'Supplier tidak ditemukan.'
+    };
+  }
+
+  return {
+    success: true,
+    supplier: supplier
+  };
+}
+
+
+/**
+ * Create supplier if new.
+ * Otherwise return existing supplier.
+ */
+function createOrGetSupplier(data) {
+
+  validateRequired(data, [
+    'name',
+    'phone',
+    'supplierType',
+    'area'
+  ]);
+
+  const normalizedPhone = normalizePhone(data.phone);
+
+  const existingSupplier =
+    findSupplierByPhone(normalizedPhone);
+
+  if (existingSupplier) {
+    return existingSupplier;
+  }
+
+  return createSupplier({
+    name: data.name,
+    phone: normalizedPhone,
+    supplierType: data.supplierType,
+    area: data.area
+  });
+}
+
+
+/* =================================================
+   4. PICKUP REQUEST
+   ================================================= */
+
+/**
+ * Create pickup request.
+ *
+ * Sheet:
+ * PICKUP_REQUESTS
+ *
+ * Columns:
+ * A Request ID
+ * B Supplier ID
+ * C Supplier Type
+ * D Area
+ * E Estimated Volume L
+ * F Preferred Schedule
+ * G Route ID
+ * H Status
+ * I Created At
+ * J Notes
+ */
 function createPickupRequest(data) {
 
-validateRequired(data, [
-  'supplierId',
-  'area',
-  'estimatedVolumeL',
-  'preferredSchedule'
-]);
+  validateRequired(data, [
+    'supplierId',
+    'area',
+    'estimatedVolumeL',
+    'preferredSchedule'
+  ]);
 
-  const sheet = getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
+  const estimatedVolumeL =
+    Number(data.estimatedVolumeL);
+
+  if (!Number.isFinite(estimatedVolumeL) ||
+      estimatedVolumeL <= 0) {
+
+    throw new Error(
+      'Estimated volume harus lebih besar dari 0 liter.'
+    );
+  }
 
   const supplier = findSupplier(data.supplierId);
 
   if (!supplier) {
-    throw new Error('Supplier not found.');
+    throw new Error('Supplier tidak ditemukan.');
   }
 
   const requestId = generateId('REQ');
@@ -230,13 +462,16 @@ validateRequired(data, [
     data.preferredSchedule
   );
 
+  const sheet =
+    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
+
   const row = [
     requestId,
-    data.supplierId,
+    supplier.supplierId,
     supplier.supplierType,
-    data.area,
-    Number(data.estimatedVolumeL),
-    data.preferredSchedule,
+    String(data.area).trim(),
+    estimatedVolumeL,
+    String(data.preferredSchedule).trim(),
     routeId,
     'Pending',
     new Date(),
@@ -248,1785 +483,198 @@ validateRequired(data, [
   updateRoute(routeId);
 
   return {
-    success: true,
     requestId: requestId,
+    supplierId: supplier.supplierId,
+    supplierName: supplier.name,
+    supplierType: supplier.supplierType,
+    area: data.area,
+    estimatedVolumeL: estimatedVolumeL,
+    preferredSchedule: data.preferredSchedule,
     routeId: routeId,
-    status: 'Pending',
-    message: 'Pickup request successfully submitted.'
+    status: 'Pending'
   };
 }
 
 
 /**
- * =========================
- * WEIGHING & PAYOUT
- * =========================
+ * Find pickup request by request ID.
  */
-
-function createWeighing(data) {
-
-  validateRequired(data, [
-
-    'requestId',
-
-    'actualVolumeL',
-
-    'pricePerL'
-
-  ]);
-
-  const request =
-    findPickupRequest(data.requestId);
-
-  if (!request) {
-
-    throw new Error(
-      'Pickup request not found.'
-    );
-
-  }
+function findPickupRequest(requestId) {
 
   const sheet =
-    getSheet(
-      CONFIG.SHEETS.WEIGHING_PAYOUT
-    );
-
-  // ==========================================
-  // PREVENT DUPLICATE WEIGHING
-  // ==========================================
-
-  const existingData =
-    sheet.getDataRange().getValues();
-
-  for (let i = 1; i < existingData.length; i++) {
-
-    const existingRequestId =
-      String(existingData[i][1]).trim();
-
-    if (
-      existingRequestId ===
-      String(data.requestId).trim()
-    ) {
-
-      throw new Error(
-        'Weighing already recorded for this pickup request.'
-      );
-
-    }
-
-  }
-
-  // ==========================================
-  // CREATE TRANSACTION
-  // ==========================================
-
-  const transactionId =
-    generateId('TXN');
-
-  const actualVolume =
-    Number(data.actualVolumeL);
-
-  const pricePerL =
-    Number(data.pricePerL);
-
-  const payout =
-    actualVolume * pricePerL;
-
-  const row = [
-
-    transactionId,
-
-    data.requestId,
-
-    request.routeId,
-
-    request.supplierId,
-
-    request.estimatedVolumeL,
-
-    actualVolume,
-
-    pricePerL,
-
-    payout,
-
-    new Date(),
-
-    data.paymentStatus || 'Pending'
-
-  ];
-
-  sheet.appendRow(row);
-
-  updatePickupStatus(
-
-    data.requestId,
-
-    'Completed'
-
-  );
-
-  updateRoute(
-
-    request.routeId
-
-  );
-
-  return {
-
-    success: true,
-
-    transactionId: transactionId,
-
-    actualVolumeL:
-      actualVolume,
-
-    payout:
-      payout,
-
-    message:
-      'Weighing successfully recorded.'
-
-  };
-
-}
-
-function getWeighingQueue() {
-
-  const cache =
-    CacheService.getScriptCache();
-
-  const cacheKey =
-    'JEMPUT_JELANTAH_WEIGHING_QUEUE';
-
-  try {
-
-    // ==========================================
-    // CHECK CACHE
-    // ==========================================
-
-    const cached =
-      cache.get(cacheKey);
-
-    if (cached) {
-
-      console.log(
-        'WEIGHING QUEUE: served from cache'
-      );
-
-      return JSON.parse(cached);
-
-    }
-
-
-    // ==========================================
-    // READ PICKUP REQUESTS
-    // ==========================================
-
-    const ss =
-      SpreadsheetApp.getActiveSpreadsheet();
-
-    const sheet =
-      ss.getSheetByName(
-        'PICKUP_REQUESTS'
-      );
-
-
-    if (!sheet) {
-
-      return {
-
-        success: false,
-
-        message:
-          'Sheet PICKUP_REQUESTS tidak ditemukan.'
-
-      };
-
-    }
-
-
-    const data =
-      sheet.getDataRange().getValues();
-
-
-    if (data.length < 2) {
-
-      const emptyResult = {
-
-        success: true,
-
-        requests: []
-
-      };
-
-
-      cache.put(
-        cacheKey,
-        JSON.stringify(emptyResult),
-        30
-      );
-
-
-      return emptyResult;
-
-    }
-
-
-    // ==========================================
-    // HEADER INDEX
-    // ==========================================
-
-    const headers =
-      data[0];
-
-
-    const requestIdIndex =
-      headers.indexOf(
-        'Request ID'
-      );
-
-    const supplierIdIndex =
-      headers.indexOf(
-        'Supplier ID'
-      );
-
-    const supplierTypeIndex =
-      headers.indexOf(
-        'Supplier Type'
-      );
-
-    const areaIndex =
-      headers.indexOf(
-        'Area'
-      );
-
-    const estimatedVolumeIndex =
-      headers.indexOf(
-        'Estimated Volume L'
-      );
-
-    const routeIdIndex =
-      headers.indexOf(
-        'Route ID'
-      );
-
-    const statusIndex =
-      headers.indexOf(
-        'Status'
-      );
-
-
-    if (
-      requestIdIndex === -1 ||
-      supplierIdIndex === -1 ||
-      supplierTypeIndex === -1 ||
-      areaIndex === -1 ||
-      estimatedVolumeIndex === -1 ||
-      routeIdIndex === -1 ||
-      statusIndex === -1
-    ) {
-
-      return {
-
-        success: false,
-
-        message:
-          'Header sheet PICKUP_REQUESTS tidak sesuai.'
-
-      };
-
-    }
-
-
-    // ==========================================
-    // BUILD QUEUE
-    // ==========================================
-
-    const requests = [];
-
-
-    for (
-      let i = 1;
-      i < data.length;
-      i++
-    ) {
-
-      const row =
-        data[i];
-
-
-      const status =
-        String(
-          row[statusIndex] || ''
-        )
-        .trim()
-        .toLowerCase();
-
-
-      if (
-        status === 'completed' ||
-        status === 'cancelled'
-      ) {
-
-        continue;
-
-      }
-
-
-      const requestId =
-        String(
-          row[requestIdIndex] || ''
-        ).trim();
-
-
-      if (!requestId) {
-
-        continue;
-
-      }
-
-
-      requests.push({
-
-        requestId:
-          requestId,
-
-        supplierId:
-          String(
-            row[supplierIdIndex] || ''
-          ),
-
-        supplierType:
-          String(
-            row[supplierTypeIndex] || ''
-          ),
-
-        area:
-          String(
-            row[areaIndex] || ''
-          ),
-
-        estimatedVolumeL:
-          Number(
-            row[estimatedVolumeIndex]
-          ) || 0,
-
-        routeId:
-          String(
-            row[routeIdIndex] || ''
-          ),
-
-        status:
-          String(
-            row[statusIndex] || ''
-          )
-
-      });
-
-    }
-
-
-    // ==========================================
-    // RESULT
-    // ==========================================
-
-    const result = {
-
-      success: true,
-
-      requests:
-        requests
-
-    };
-
-
-    // ==========================================
-    // SAVE CACHE
-    // ==========================================
-
-    cache.put(
-      cacheKey,
-      JSON.stringify(result),
-      30
-    );
-
-
-    console.log(
-      'WEIGHING QUEUE: loaded from sheet and cached'
-    );
-
-
-    return result;
-
-
-  } catch (error) {
-
-    console.error(
-      'getWeighingQueue error:',
-      error
-    );
-
-
-    return {
-
-      success: false,
-
-      message:
-        error.message ||
-        'Gagal mengambil antrean weighing.'
-
-    };
-
-  }
-
-}
-
-
-/**
- * =========================
- * ROUTES
- * =========================
- */
-
-function updateRoute(routeId) {
-
-  const routeSheet =
-    getSheet(CONFIG.SHEETS.ROUTES);
-
-  const requestsSheet =
     getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
 
-  const requestData =
-    requestsSheet.getDataRange().getValues();
-
-  const routeRequests = [];
-
-  // ==========================================
-  // 1. GET ALL REQUESTS BELONGING TO THIS ROUTE
-  // ==========================================
-
-  for (let i = 1; i < requestData.length; i++) {
-
-    const requestRouteId =
-      String(requestData[i][6]).trim();
-
-    const status =
-      String(requestData[i][7]).trim();
-
-    if (
-      requestRouteId === String(routeId).trim() &&
-      status !== 'Cancelled'
-    ) {
-
-      routeRequests.push({
-
-        requestId: requestData[i][0],
-
-        supplierId: requestData[i][1],
-
-        supplierType: requestData[i][2],
-
-        area: requestData[i][3],
-
-        estimatedVolume:
-          Number(requestData[i][4]) || 0,
-
-        preferredSchedule: requestData[i][5],
-
-        status: status
-
-      });
-    }
-  }
-
-
-  // ==========================================
-  // 2. NO REQUEST FOUND
-  // ==========================================
-
-  if (routeRequests.length === 0) {
-
-    console.log(
-      'No pickup requests found for route: ' +
-      routeId
-    );
-
-    return {
-      success: false,
-      routeId: routeId,
-      message: 'No pickup requests found.'
-    };
-  }
-
-
-  // ==========================================
-  // 3. BASIC ROUTE INFORMATION
-  // ==========================================
-
-  const area =
-    routeRequests[0].area;
-
-  const schedule =
-    routeRequests[0].preferredSchedule;
-
-
-  // ==========================================
-  // 4. COUNT UMKM ANCHORS
-  // ==========================================
-
-  const umkmCount =
-    routeRequests.filter(item => {
-
-      return String(item.supplierType)
-        .trim()
-        .toUpperCase() === 'UMKM';
-
-    }).length;
-
-
-  // ==========================================
-  // 5. COUNT HOUSEHOLD CONTRIBUTORS
-  // ==========================================
-
-  const householdCount =
-    routeRequests.filter(item => {
-
-      const type =
-        String(item.supplierType)
-          .trim()
-          .toUpperCase();
-
-      return (
-        type === 'HOUSEHOLD' ||
-        type === 'RUMAH TANGGA'
-      );
-
-    }).length;
-
-
-  // ==========================================
-  // 6. TOTAL ESTIMATED LITERS
-  // ==========================================
-
-  const estimatedLiters =
-    routeRequests.reduce(
-      (total, item) => {
-
-        return total +
-          (Number(item.estimatedVolume) || 0);
-
-      },
-      0
-    );
-
-
-  // ==========================================
-  // 7. ACTUAL LITERS FROM WEIGHING
-  // ==========================================
-
-  const actualLiters =
-    Number(getActualLiters(routeId)) || 0;
-
-
-  // ==========================================
-  // 8. TOTAL SUPPLIERS
-  // ==========================================
-
-  const supplierCount =
-    routeRequests.length;
-
-
-  // ==========================================
-  // 9. CHECK PICKUP PROGRESS
-  // ==========================================
-
-  const completedCount =
-    routeRequests.filter(item => {
-
-      const status =
-        String(item.status)
-          .trim()
-          .toUpperCase();
-
-      return (
-        status === 'PICKED UP' ||
-        status === 'COMPLETED'
-      );
-
-    }).length;
-
-
-  const allPickedUp =
-    completedCount === routeRequests.length;
-
-
-  // ==========================================
-  // 10. ROUTE STATUS
-  // ==========================================
-
-  let routeStatus = 'Open';
-
-
-  // ALL PICKUPS COMPLETED
-  if (
-    allPickedUp &&
-    actualLiters > 0
-  ) {
-
-    routeStatus = 'Completed';
-
-  }
-
-
-  // SOME PICKUPS COMPLETED
-  else if (
-    completedCount > 0
-  ) {
-
-    routeStatus = 'In Progress';
-
-  }
-
-
-  // ENOUGH ESTIMATED VOLUME
-  else if (
-    estimatedLiters >= 50
-  ) {
-
-    routeStatus = 'Ready';
-
-  }
-
-
-  // BELOW THRESHOLD
-  else {
-
-    routeStatus = 'Open';
-
-  }
-
-
-  // ==========================================
-  // 11. LITERS PER ROUTE
-  // ==========================================
-
-  const litersPerRoute =
-    actualLiters > 0
-      ? actualLiters
-      : estimatedLiters;
-
-
-  // ==========================================
-  // 12. GET ACTIVE PRICING
-  // ==========================================
-
-  const pricing =
-    getActivePricing();
-
-  const buyerPricePerL =
-    Number(
-      pricing.referencePricePerL
-    ) || 0;
-
-
-  // ==========================================
-  // 13. CALCULATE REVENUE
-  // ==========================================
-
-  const revenue =
-    actualLiters * buyerPricePerL;
-
-
-  // ==========================================
-  // 14. CALCULATE SUPPLIER PAYOUT
-  // ==========================================
-
-  const weighingSheet =
-    getSheet(
-      CONFIG.SHEETS.WEIGHING_PAYOUT
-    );
-
-  const weighingData =
-    weighingSheet.getDataRange().getValues();
-
-  let supplierPayout = 0;
-
-
-  for (let i = 1; i < weighingData.length; i++) {
-
-    const transactionRouteId =
-      String(weighingData[i][2]).trim();
-
-    if (
-      transactionRouteId ===
-      String(routeId).trim()
-    ) {
-
-      supplierPayout +=
-        Number(weighingData[i][7]) || 0;
-
-    }
-
-  }
-
-
-  // ==========================================
-  // 15. COST & CONTRIBUTION MARGIN
-  // ==========================================
-
-  const cost =
-    supplierPayout;
-
-  const contributionMargin =
-    revenue - cost;
-
-
-  // ==========================================
-  // 16. PREPARE ROUTE ROW
-  // ==========================================
-
-  const row = [
-
-    routeId,
-
-    area,
-
-    schedule,
-
-    umkmCount,
-
-    householdCount,
-
-    estimatedLiters,
-
-    actualLiters,
-
-    supplierCount,
-
-    routeStatus,
-
-    revenue,
-
-    cost,
-
-    contributionMargin,
-
-    litersPerRoute
-
-  ];
-
-
-  // ==========================================
-  // 17. UPDATE EXISTING ROUTE
-  // OR CREATE NEW ROUTE
-  // ==========================================
-
-  const existingRow =
-    findRouteRow(routeId);
-
-
-  if (existingRow) {
-
-    routeSheet
-      .getRange(
-        existingRow,
-        1,
-        1,
-        row.length
-      )
-      .setValues([row]);
-
-  }
-
-  else {
-
-    routeSheet.appendRow(row);
-
-  }
-
-
-  // ==========================================
-  // 18. LOG RESULT
-  // ==========================================
-
-  console.log(
-    'Route updated: ' +
-    routeId +
-    ' | ' +
-    estimatedLiters +
-    'L estimated' +
-    ' | ' +
-    actualLiters +
-    'L actual' +
-    ' | Revenue: Rp' +
-    revenue +
-    ' | Cost: Rp' +
-    cost +
-    ' | Margin: Rp' +
-    contributionMargin +
-    ' | Status: ' +
-    routeStatus
-  );
-
-
-  // ==========================================
-  // 19. RETURN RESULT
-  // ==========================================
-
-  return {
-
-    success: true,
-
-    routeId: routeId,
-
-    area: area,
-
-    schedule: schedule,
-
-    umkmCount: umkmCount,
-
-    householdCount: householdCount,
-
-    estimatedLiters: estimatedLiters,
-
-    actualLiters: actualLiters,
-
-    suppliers: supplierCount,
-
-    allPickedUp: allPickedUp,
-
-    status: routeStatus,
-
-    litersPerRoute: litersPerRoute,
-
-    buyerPricePerL: buyerPricePerL,
-
-    revenue: revenue,
-
-    cost: cost,
-
-    contributionMargin:
-      contributionMargin
-
-  };
-
-}
-
-/**
- * =========================
- * DASHBOARD
- * =========================
- */
-
-function getDashboard() {
-
-  const suppliers =
-    getSheet(CONFIG.SHEETS.SUPPLIERS)
-      .getDataRange()
-      .getValues();
-
-  const requests =
-    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS)
-      .getDataRange()
-      .getValues();
-
-  const transactions =
-    getSheet(CONFIG.SHEETS.WEIGHING_PAYOUT)
-      .getDataRange()
-      .getValues();
-
-  const routes =
-    getSheet(CONFIG.SHEETS.ROUTES)
-      .getDataRange()
-      .getValues();
-
-
-  const supplierRows =
-    suppliers.slice(1);
-
-  const requestRows =
-    requests.slice(1);
-
-  const transactionRows =
-    transactions.slice(1);
-
-  const routeRows =
-    routes.slice(1);
-
-
-  /*
-   * =========================
-   * SUPPLIER METRICS
-   * =========================
-   */
-
-  const totalSuppliers =
-    supplierRows.length;
-
-  const activeUmkm =
-    supplierRows.filter(
-      row =>
-        String(row[1]).toUpperCase() === 'UMKM' &&
-        String(row[8]).toUpperCase() === 'ACTIVE'
-    ).length;
-
-  const households =
-    supplierRows.filter(
-      row =>
-        (
-          String(row[1]).toUpperCase() === 'HOUSEHOLD' ||
-          String(row[1]).toUpperCase() === 'RUMAH TANGGA'
-        ) &&
-        String(row[8]).toUpperCase() === 'ACTIVE'
-    ).length;
-
-
-  /*
-   * =========================
-   * PICKUP METRICS
-   * =========================
-   */
-
-  const pickupRequests =
-    requestRows.length;
-
-  const completedPickups =
-    requestRows.filter(
-      row =>
-        String(row[7]).toUpperCase() === 'COMPLETED'
-    ).length;
-
-
-  /*
-   * =========================
-   * VOLUME METRICS
-   * =========================
-   */
-
-  const estimatedLiters =
-    requestRows.reduce(
-      (sum, row) =>
-        sum + (Number(row[4]) || 0),
-      0
-    );
-
-  const actualLiters =
-    transactionRows.reduce(
-      (sum, row) =>
-        sum + (Number(row[5]) || 0),
-      0
-    );
-
-
-  /*
-   * =========================
-   * ROUTE METRICS
-   * =========================
-   */
-
-  const completedRoutes =
-    routeRows.filter(
-      row =>
-        String(row[8]).toUpperCase() === 'COMPLETED'
-    );
-
-
-  const averageLitersPerRoute =
-    completedRoutes.length > 0
-      ? completedRoutes.reduce(
-          (sum, row) =>
-            sum + (Number(row[12]) || 0),
-          0
-        ) / completedRoutes.length
-      : 0;
-
-
-  /*
-   * =========================
-   * ROUTE THRESHOLD
-   * =========================
-   */
-
-  const routesAtThreshold =
-    routeRows.filter(
-      row =>
-        (Number(row[12]) || 0) >= 50
-    ).length;
-
-
-  const totalRoutes =
-    routeRows.length;
-
-
-  const routeThresholdRate =
-    totalRoutes > 0
-      ? routesAtThreshold / totalRoutes
-      : 0;
-
-
-  /*
-   * =========================
-   * COMPLETION RATE
-   * =========================
-   */
-
-  const completionRate =
-    pickupRequests > 0
-      ? completedPickups / pickupRequests
-      : 0;
-
-
-  /*
-   * =========================
-   * REPEAT CONTRIBUTION
-   * =========================
-   */
-
-  const supplierRequestCount = {};
-
-  requestRows.forEach(row => {
-
-    const supplierId =
-      String(row[1] || '');
-
-    if (!supplierId) {
-      return;
-    }
-
-    supplierRequestCount[supplierId] =
-      (supplierRequestCount[supplierId] || 0) + 1;
-
-  });
-
-
-  const repeatSuppliers =
-    Object.values(supplierRequestCount)
-      .filter(count => count > 1)
-      .length;
-
-
-  const repeatContributionRate =
-    totalSuppliers > 0
-      ? repeatSuppliers / totalSuppliers
-      : 0;
-
-
-  /*
-   * =========================
-   * PAYOUT METRICS
-   * =========================
-   */
-
-  const totalPayout =
-    transactionRows.reduce(
-      (sum, row) =>
-        sum + (Number(row[7]) || 0),
-      0
-    );
-
-
-  const averagePayoutPerLiter =
-    actualLiters > 0
-      ? totalPayout / actualLiters
-      : 0;
-
-
-  /*
-   * =========================
-   * REVENUE
-   * =========================
-   *
-   * Revenue is taken directly
-   * from ROUTES.
-   *
-   * ROUTES column J = Revenue
-   */
-
-  const totalRevenue =
-    routeRows.reduce(
-      (sum, row) =>
-        sum + (Number(row[9]) || 0),
-      0
-    );
-
-
-  /*
-   * =========================
-   * CONTRIBUTION MARGIN
-   * =========================
-   *
-   * ROUTES column L = Margin
-   */
-
-  const contributionMargin =
-    routeRows.reduce(
-      (sum, row) =>
-        sum + (Number(row[11]) || 0),
-      0
-    );
-
-
-  /*
-   * =========================
-   * MARGIN PER LITER
-   * =========================
-   */
-
-  const contributionMarginPerLiter =
-    actualLiters > 0
-      ? contributionMargin / actualLiters
-      : 0;
-
-
-  /*
-   * =========================
-   * MARGIN RATE
-   * =========================
-   */
-
-  const contributionMarginRate =
-    totalRevenue > 0
-      ? contributionMargin / totalRevenue
-      : 0;
-
-
-  /*
-   * =========================
-   * WRITE TO DASHBOARD
-   * =========================
-   */
-
-  const dashboardSheet =
-    getSheet(CONFIG.SHEETS.DASHBOARD);
-
-
-  dashboardSheet
-    .getRange(
-      1,
-      1,
-      dashboardSheet.getMaxRows(),
-      4
-    )
-    .clearContent();
-
-
-  dashboardSheet
-    .getRange(1, 1, 1, 4)
-    .setValues([
-      [
-        'Metric',
-        'Value',
-        'Target',
-        'Status'
-      ]
-    ]);
-
-
-  const dashboardRows = [
-
-    [
-      'Total Suppliers',
-      totalSuppliers,
-      '',
-      totalSuppliers > 0
-        ? 'Active'
-        : 'No Data'
-    ],
-
-    [
-      'Active UMKM Anchors',
-      activeUmkm,
-      '',
-      activeUmkm > 0
-        ? 'Active'
-        : 'No Data'
-    ],
-
-    [
-      'Household Contributors',
-      households,
-      '',
-      households > 0
-        ? 'Active'
-        : 'No Data'
-    ],
-
-    [
-      'Pickup Requests',
-      pickupRequests,
-      '',
-      pickupRequests > 0
-        ? 'Active'
-        : 'No Data'
-    ],
-
-    [
-      'Completed Pickups',
-      completedPickups,
-      '',
-      completedPickups > 0
-        ? 'Validated'
-        : 'No Data'
-    ],
-
-    [
-      'Estimated Liters',
-      estimatedLiters,
-      '',
-      estimatedLiters > 0
-        ? 'Active'
-        : 'No Data'
-    ],
-
-    [
-      'Actual Liters',
-      actualLiters,
-      '',
-      actualLiters > 0
-        ? 'Validated'
-        : 'No Data'
-    ],
-
-    [
-      'Average Liters Per Route',
-      Number(
-        averageLitersPerRoute.toFixed(2)
-      ),
-      50,
-      averageLitersPerRoute >= 50
-        ? 'Target Met'
-        : 'Below Target'
-    ],
-
-    [
-      'Routes ≥ 50 L',
-      routesAtThreshold,
-      '',
-      routesAtThreshold > 0
-        ? 'Validated'
-        : 'No Data'
-    ],
-
-    [
-      'Route Threshold Achievement',
-      Number(
-        (routeThresholdRate * 100).toFixed(2)
-      ) + '%',
-      '100%',
-      routeThresholdRate >= 1
-        ? 'Target Met'
-        : 'Below Target'
-    ],
-
-    [
-      'Pickup Completion Rate',
-      Number(
-        (completionRate * 100).toFixed(2)
-      ) + '%',
-      '≥ 80%',
-      completionRate >= 0.8
-        ? 'Target Met'
-        : 'Below Target'
-    ],
-
-    [
-      'Repeat Contribution Rate',
-      Number(
-        (repeatContributionRate * 100).toFixed(2)
-      ) + '%',
-      '≥ 50%',
-      repeatContributionRate >= 0.5
-        ? 'Target Met'
-        : 'Below Target'
-    ],
-
-    [
-      'Average Payout Per Liter',
-      averagePayoutPerLiter,
-      '',
-      averagePayoutPerLiter > 0
-        ? 'Active'
-        : 'No Data'
-    ],
-
-    [
-      'Total Revenue',
-      totalRevenue,
-      '',
-      totalRevenue > 0
-        ? 'Validated'
-        : 'No Data'
-    ],
-
-    [
-      'Total Supplier Payout',
-      totalPayout,
-      '',
-      totalPayout > 0
-        ? 'Validated'
-        : 'No Data'
-    ],
-
-    [
-      'Contribution Margin',
-      contributionMargin,
-      '',
-      contributionMargin > 0
-        ? 'Positive'
-        : 'No Data'
-    ],
-
-    [
-      'Contribution Margin Per Liter',
-      contributionMarginPerLiter,
-      '',
-      contributionMarginPerLiter > 0
-        ? 'Positive'
-        : 'No Data'
-    ],
-
-    [
-      'Contribution Margin Rate',
-      Number(
-        (contributionMarginRate * 100).toFixed(2)
-      ) + '%',
-      '',
-      contributionMarginRate > 0
-        ? 'Positive'
-        : 'No Data'
-    ]
-
-  ];
-
-
-  dashboardSheet
-    .getRange(
-      2,
-      1,
-      dashboardRows.length,
-      4
-    )
-    .setValues(dashboardRows);
-
-
-  /*
-   * =========================
-   * RETURN RESULT
-   * =========================
-   */
-
-  return {
-
-    success: true,
-
-    metrics: {
-
-      totalSuppliers,
-
-      activeUmkm,
-
-      households,
-
-      pickupRequests,
-
-      completedPickups,
-
-      estimatedLiters,
-
-      actualLiters,
-
-      averageLitersPerRoute,
-
-      routesAtThreshold,
-
-      routeThresholdRate,
-
-      completionRate,
-
-      repeatContributionRate,
-
-      averagePayoutPerLiter,
-
-      totalRevenue,
-
-      totalPayout,
-
-      contributionMargin,
-
-      contributionMarginPerLiter,
-
-      contributionMarginRate
-
-    }
-
-  };
-
-}
-
-
-/**
- * =========================
- * GET ROUTES
- * =========================
- */
-
-function getRoutes() {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.ROUTES);
-
-  const values =
-    sheet.getDataRange().getValues();
+  const values = sheet.getDataRange().getValues();
 
   if (values.length <= 1) {
-    return {
-      success: true,
-      routes: []
-    };
-  }
-
-  const headers = values[0];
-
-  const routes =
-    values.slice(1).map(row => {
-
-      let obj = {};
-
-      headers.forEach(
-        (header, index) => {
-          obj[header] = row[index];
-        }
-      );
-
-      return obj;
-    });
-
-  return {
-    success: true,
-    routes
-  };
-}
-
-
-/**
- * =========================
- * SUPPLIER LOOKUP
- * =========================
- */
-
-function getSupplier(supplierId) {
-
-  const supplier =
-    findSupplier(supplierId);
-
-  if (!supplier) {
-
-    return {
-      success: false,
-      error: 'Supplier not found.'
-    };
-
-  }
-
-  return {
-    success: true,
-    supplier
-  };
-}
-
-
-/**
- * =========================
- * HELPER FUNCTIONS
- * =========================
- */
-
-function getSheet(name) {
-
-  const spreadsheet =
-    SpreadsheetApp.getActiveSpreadsheet();
-
-  const sheet =
-    spreadsheet.getSheetByName(name);
-
-  if (!sheet) {
-    throw new Error(
-      'Sheet not found: ' + name
-    );
-  }
-
-  return sheet;
-}
-
-
-function findSupplier(supplierId) {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.SUPPLIERS);
-
-  const data =
-    sheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-
-    if (data[i][0] === supplierId) {
-
-      return {
-        supplierId: data[i][0],
-        supplierType: data[i][1],
-        name: data[i][2],
-        phone: data[i][3],
-        area: data[i][4],
-        address: data[i][5],
-        typicalVolumeL: data[i][6],
-        collectionPreference: data[i][7],
-        status: data[i][8],
-        createdAt: data[i][9]
-      };
-
-    }
-  }
-
-  return null;
-}
-
-// ==========================================
-// NORMALIZE PHONE NUMBER
-// ==========================================
-
-function normalizePhone(phone) {
-
-  let value =
-    String(phone || '')
-      .trim()
-      .replace(/\D/g, '');
-
-  if (!value) {
-    return '';
-  }
-
-  // +62xxxxxxxxxx / 62xxxxxxxxxx
-  if (value.startsWith('62')) {
-    value = '0' + value.substring(2);
-  }
-
-  // 8xxxxxxxxxx
-  else if (value.startsWith('8')) {
-    value = '0' + value;
-  }
-
-  return value;
-}
-
-function displayPhone(phone) {
-
-  const normalized =
-    normalizePhone(phone);
-
-  return normalized || '';
-}
-
-
-// ==========================================
-// FIND SUPPLIER BY PHONE
-// ==========================================
-
-function findSupplierByPhone(phone) {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.SUPPLIERS);
-
-  const data =
-    sheet.getDataRange().getValues();
-
-  if (data.length <= 1) {
     return null;
   }
 
-  const normalizedPhone =
-    normalizePhone(phone);
+  for (let i = 1; i < values.length; i++) {
 
-  for (let i = 1; i < data.length; i++) {
+    const row = values[i];
 
-    const rowPhone =
-      normalizePhone(data[i][3]);
-
-    if (
-      rowPhone &&
-      rowPhone === normalizedPhone
-    ) {
+    if (String(row[0]) === String(requestId)) {
 
       return {
-
-        supplierId: String(data[i][0] || ''),
-
-        supplierType: String(data[i][1] || ''),
-
-        name: String(data[i][2] || ''),
-
-        phone: displayPhone(data[i][3]),
-
-        area: String(data[i][4] || ''),
-
-        address: String(data[i][5] || ''),
-
-        typicalVolumeL:
-          Number(data[i][6]) || 0,
-
-        collectionPreference:
-          String(data[i][7] || ''),
-
-        status:
-          String(data[i][8] || ''),
-
-        createdAt:
-          data[i][9]
-            ? new Date(data[i][9]).toISOString()
-            : ''
-
+        requestId: row[0],
+        supplierId: row[1],
+        supplierType: row[2],
+        area: row[3],
+        estimatedVolumeL: Number(row[4]) || 0,
+        preferredSchedule: row[5],
+        routeId: row[6],
+        status: row[7],
+        createdAt: row[8],
+        notes: row[9]
       };
-
     }
-
   }
 
   return null;
 }
 
-// ==========================================
-// GET SUPPLIER BY PHONE
-// ==========================================
 
-function getSupplierByPhone(phone) {
+/**
+ * Update pickup request status.
+ */
+function updatePickupStatus(requestId, newStatus) {
 
-  if (!phone) {
+  const sheet =
+    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
 
-    return {
-      success: false,
-      message: 'Phone number is required.'
-    };
+  const values = sheet.getDataRange().getValues();
 
+  for (let i = 1; i < values.length; i++) {
+
+    if (String(values[i][0]) === String(requestId)) {
+
+      sheet.getRange(i + 1, 8)
+        .setValue(newStatus);
+
+      updateRoute(values[i][6]);
+
+      return {
+        success: true,
+        requestId: requestId,
+        status: newStatus
+      };
+    }
   }
 
-  const supplier =
-    findSupplierByPhone(phone);
-
-  if (!supplier) {
-
-    return {
-      success: true,
-      found: false,
-      supplier: null
-    };
-
-  }
-
-  return {
-    success: true,
-    found: true,
-    supplier: supplier
-  };
-
-}
-
-// ==========================================
-// GET PICKUP HISTORY BY PHONE
-// ==========================================
-
-function getPickupHistoryByPhone(phone) {
-
-  const supplier =
-    findSupplierByPhone(phone);
-
-  if (!supplier) {
-
-    return {
-      success: true,
-      found: false,
-      supplier: null,
-      history: []
-    };
-
-  }
-
-  const history =
-    getPickupHistory(
-      supplier.supplierId
-    );
-
-  return {
-    success: true,
-    found: true,
-    supplier: supplier,
-    history: history || []
-  };
-
+  throw new Error('Pickup request tidak ditemukan.');
 }
 
 
-// ==========================================
-// GET COLLECTION PROGRESS BY PHONE
-// ==========================================
+/**
+ * Get pickup history by supplier ID.
+ */
+function getPickupHistory(supplierId) {
 
-function getCollectionProgressByPhone(phone) {
-
-  const supplier =
-    findSupplierByPhone(phone);
-
-  if (!supplier) {
-    return {
-      success: true,
-      found: false,
-      collectedLiters: 0,
-      targetLiters: 10,
-      remainingLiters: 10,
-      progressPercent: 0
-    };
+  if (!supplierId) {
+    throw new Error('Supplier ID wajib diisi.');
   }
 
   const sheet =
     getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
 
-  const data =
-    sheet.getDataRange().getValues();
+  const values = sheet.getDataRange().getValues();
 
-  let collectedLiters = 0;
+  const history = [];
 
-  for (let i = 1; i < data.length; i++) {
+  for (let i = 1; i < values.length; i++) {
 
-    const supplierId =
-      String(data[i][1]).trim();
+    const row = values[i];
 
-    const status =
-      String(data[i][7])
-        .trim()
-        .toUpperCase();
+    if (String(row[1]) === String(supplierId)) {
 
-    if (
-      supplierId ===
-      String(supplier.supplierId).trim()
-    ) {
-
-      if (
-        status !== 'COMPLETED' &&
-        status !== 'CANCELLED'
-      ) {
-
-        collectedLiters +=
-          Number(data[i][4]) || 0;
-
-      }
+      history.push({
+        requestId: row[0],
+        supplierType: row[2],
+        area: row[3],
+        estimatedVolumeL: Number(row[4]) || 0,
+        preferredSchedule: row[5],
+        routeId: row[6],
+        status: row[7],
+        createdAt: row[8],
+        notes: row[9]
+      });
     }
   }
 
-  const targetLiters = 10;
+  return history;
+}
+
+
+/**
+ * Get pickup history using phone number.
+ */
+function getPickupHistoryByPhone(phone) {
+
+  const supplier = findSupplierByPhone(phone);
+
+  if (!supplier) {
+
+    return {
+      success: false,
+      message: 'Nomor telepon belum terdaftar.'
+    };
+  }
+
+  const history =
+    getPickupHistory(supplier.supplierId);
+
+  return {
+    success: true,
+    supplier: supplier,
+    history: history
+  };
+}
+
+
+/* =================================================
+   5. COLLECTION PROGRESS
+   ================================================= */
+
+/**
+ * Calculate current collection progress
+ * for a supplier.
+ *
+ * Progress target is an internal UX/product rule.
+ */
+function getCollectionProgressByPhone(phone) {
+
+  const supplier = findSupplierByPhone(phone);
+
+  if (!supplier) {
+
+    return {
+      success: false,
+      message: 'Supplier tidak ditemukan.'
+    };
+  }
+
+  const history =
+    getPickupHistory(supplier.supplierId);
+
+  let collectedLiters = 0;
+
+  history.forEach(function(request) {
+
+    if (
+      request.status !== 'Completed' &&
+      request.status !== 'Cancelled'
+    ) {
+      collectedLiters +=
+        Number(request.estimatedVolumeL) || 0;
+    }
+  });
+
+  const targetLiters =
+    CONFIG.BUSINESS_RULES.COLLECTION_TARGET_L;
 
   const remainingLiters =
-    Math.max(
-      targetLiters - collectedLiters,
-      0
-    );
+    Math.max(targetLiters - collectedLiters, 0);
 
   const progressPercent =
     Math.min(
@@ -2038,7 +686,7 @@ function getCollectionProgressByPhone(phone) {
 
   return {
     success: true,
-    found: true,
+    supplierId: supplier.supplierId,
     collectedLiters: collectedLiters,
     targetLiters: targetLiters,
     remainingLiters: remainingLiters,
@@ -2046,239 +694,265 @@ function getCollectionProgressByPhone(phone) {
   };
 }
 
-// ==========================================
-// GET PICKUP HISTORY BY PHONE
-// ==========================================
 
-function getPickupHistory(supplierId) {
+/* =================================================
+   6. ROUTE AGGREGATION
+   ================================================= */
 
-  const sheet =
-    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
+/**
+ * Generate route ID from area + schedule.
+ */
+function generateRouteId(area, schedule) {
 
-  const data =
-    sheet.getDataRange().getValues();
+  const normalizedArea =
+    String(area || '')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '-');
 
-  if (data.length <= 1) {
-    return [];
+  const normalizedSchedule =
+    String(schedule || '')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w-]/g, '');
+
+  return 'ROUTE-' +
+    normalizedArea +
+    '-' +
+    normalizedSchedule;
+}
+
+
+/**
+ * Recalculate a route from pickup requests.
+ *
+ * Route logic:
+ *
+ * Estimated volume < 50L
+ * → Open
+ *
+ * Estimated volume >= 50L
+ * → Ready
+ *
+ * Some completed
+ * → In Progress
+ *
+ * All completed + actual volume > 0
+ * → Completed
+ */
+function updateRoute(routeId) {
+
+  if (!routeId) {
+    return null;
   }
 
-  const history = [];
+  const requestSheet =
+    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
 
-  for (let i = 1; i < data.length; i++) {
+  const requestValues =
+    requestSheet.getDataRange().getValues();
+
+  const routeRequests = [];
+
+  for (let i = 1; i < requestValues.length; i++) {
+
+    const row = requestValues[i];
+
+    if (String(row[6]) === String(routeId)) {
+
+      routeRequests.push({
+        requestId: row[0],
+        supplierId: row[1],
+        supplierType: row[2],
+        area: row[3],
+        estimatedVolumeL: Number(row[4]) || 0,
+        schedule: row[5],
+        status: row[7]
+      });
+    }
+  }
+
+  if (routeRequests.length === 0) {
+    return null;
+  }
+
+  const area =
+    routeRequests[0].area;
+
+  const schedule =
+    routeRequests[0].schedule;
+
+  let umkmCount = 0;
+  let householdCount = 0;
+  let estimatedLiters = 0;
+  let completedCount = 0;
+
+  routeRequests.forEach(function(request) {
+
+    estimatedLiters +=
+      request.estimatedVolumeL;
 
     if (
-      String(data[i][1]) ===
-      String(supplierId)
+      String(request.supplierType)
+        .toLowerCase()
+        .includes('umkm')
     ) {
-
-      history.push({
-
-        requestId:
-          String(data[i][0] || ''),
-
-        supplierId:
-          String(data[i][1] || ''),
-
-        supplierType:
-          String(data[i][2] || ''),
-
-        area:
-          String(data[i][3] || ''),
-
-        estimatedVolumeL:
-          Number(data[i][4]) || 0,
-
-        preferredSchedule:
-          String(data[i][5] || ''),
-
-        routeId:
-          String(data[i][6] || ''),
-
-        status:
-          String(data[i][7] || ''),
-
-        submittedAt:
-          data[i][8]
-            ? new Date(data[i][8]).toISOString()
-            : '',
-
-        notes:
-          String(data[i][9] || '')
-
-      });
-
+      umkmCount++;
+    } else {
+      householdCount++;
     }
 
+    if (request.status === 'Completed') {
+      completedCount++;
+    }
+  });
+
+  const supplierCount =
+    routeRequests.length;
+
+  const actualLiters =
+    getActualLiters(routeId);
+
+  let routeStatus = 'Open';
+
+  if (
+    completedCount === supplierCount &&
+    actualLiters > 0
+  ) {
+
+    routeStatus = 'Completed';
+
+  } else if (completedCount > 0) {
+
+    routeStatus = 'In Progress';
+
+  } else if (
+    estimatedLiters >=
+    CONFIG.BUSINESS_RULES.ROUTE_THRESHOLD_L
+  ) {
+
+    routeStatus = 'Ready';
+
+  } else {
+
+    routeStatus = 'Open';
   }
 
-  history.reverse();
+  const pricing =
+    getActivePricing();
 
-  return history;
+  const buyerPricePerL =
+    Number(pricing.buyerPricePerL) || 0;
 
-}
+  const revenue =
+    actualLiters * buyerPricePerL;
 
-// ==========================================
-// CREATE OR GET SUPPLIER
-// ==========================================
+  const payoutCost =
+    getRouteSupplierPayout(routeId);
 
-function createOrGetSupplier(data) {
+  const contributionMargin =
+    revenue - payoutCost;
 
-  validateRequired(data, [
-    'supplierType',
-    'name',
-    'phone',
-    'area'
-  ]);
+  const litersPerRoute =
+    actualLiters > 0
+      ? actualLiters
+      : estimatedLiters;
 
-  // ========================================
-  // CHECK EXISTING SUPPLIER
-  // ========================================
+  const routeSheet =
+    getSheet(CONFIG.SHEETS.ROUTES);
 
-  const existingSupplier =
-    findSupplierByPhone(data.phone);
+  const routeRow = [
+    routeId,
+    area,
+    schedule,
+    umkmCount,
+    householdCount,
+    estimatedLiters,
+    actualLiters,
+    supplierCount,
+    routeStatus,
+    revenue,
+    payoutCost,
+    contributionMargin,
+    litersPerRoute
+  ];
 
-  if (existingSupplier) {
+  const existingRow =
+    findRouteRow(routeId);
 
-    return {
-      success: true,
-      isNew: false,
-      supplierId: existingSupplier.supplierId,
-      supplier: existingSupplier
-    };
+  if (existingRow) {
 
+    routeSheet
+      .getRange(existingRow, 1, 1, routeRow.length)
+      .setValues([routeRow]);
+
+  } else {
+
+    routeSheet.appendRow(routeRow);
   }
-
-
-  // ========================================
-  // CREATE NEW SUPPLIER
-  // ========================================
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.SUPPLIERS);
-
-  const supplierId =
-    generateId('SUP');
-
-  sheet.appendRow([
-    supplierId,
-    data.supplierType,
-    data.name,
-    data.phone,
-    data.area,
-    data.address || '',
-    Number(data.typicalVolumeL) || 0,
-    data.collectionPreference || '',
-    'Active',
-    new Date()
-  ]);
 
   return {
-    success: true,
-    isNew: true,
-    supplierId: supplierId,
-    supplier: {
-      supplierId: supplierId,
-      supplierType: data.supplierType,
-      name: data.name,
-      phone: data.phone,
-      area: data.area
-    }
+    routeId: routeId,
+    area: area,
+    schedule: schedule,
+    umkmCount: umkmCount,
+    householdCount: householdCount,
+    estimatedLiters: estimatedLiters,
+    actualLiters: actualLiters,
+    supplierCount: supplierCount,
+    routeStatus: routeStatus,
+    revenue: revenue,
+    payoutCost: payoutCost,
+    contributionMargin: contributionMargin,
+    litersPerRoute: litersPerRoute
   };
-
-}
-
-function findPickupRequest(requestId) {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
-
-  const data =
-    sheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-
-    if (data[i][0] === requestId) {
-
-      return {
-        requestId: data[i][0],
-        supplierId: data[i][1],
-        supplierType: data[i][2],
-        area: data[i][3],
-        estimatedVolumeL: Number(data[i][4]),
-        preferredSchedule: data[i][5],
-        routeId: data[i][6],
-        status: data[i][7]
-      };
-
-    }
-  }
-
-  return null;
 }
 
 
-function updatePickupStatus(
-  requestId,
-  newStatus
-) {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
-
-  const data =
-    sheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-
-    if (data[i][0] === requestId) {
-
-      sheet
-        .getRange(i + 1, 8)
-        .setValue(newStatus);
-
-      return;
-
-    }
-  }
-}
-
-
+/**
+ * Find route row by route ID.
+ */
 function findRouteRow(routeId) {
 
   const sheet =
     getSheet(CONFIG.SHEETS.ROUTES);
 
-  const data =
+  const values =
     sheet.getDataRange().getValues();
 
-  for (let i = 1; i < data.length; i++) {
+  for (let i = 1; i < values.length; i++) {
 
-    if (data[i][0] === routeId) {
+    if (String(values[i][0]) === String(routeId)) {
       return i + 1;
     }
-
   }
 
   return null;
 }
 
 
+/**
+ * Calculate actual liters for a route.
+ */
 function getActualLiters(routeId) {
 
   const sheet =
     getSheet(CONFIG.SHEETS.WEIGHING_PAYOUT);
 
-  const data =
+  const values =
     sheet.getDataRange().getValues();
 
   let total = 0;
 
-  for (let i = 1; i < data.length; i++) {
+  for (let i = 1; i < values.length; i++) {
 
-    if (data[i][2] === routeId) {
+    const row = values[i];
 
-      total += Number(data[i][5]) || 0;
+    if (String(row[2]) === String(routeId)) {
 
+      total +=
+        Number(row[5]) || 0;
     }
   }
 
@@ -2286,63 +960,1143 @@ function getActualLiters(routeId) {
 }
 
 
-function generateId(prefix) {
+/**
+ * Calculate total supplier payout for a route.
+ */
+function getRouteSupplierPayout(routeId) {
 
-  const timestamp =
-    new Date().getTime();
+  const sheet =
+    getSheet(CONFIG.SHEETS.WEIGHING_PAYOUT);
 
-  const random =
-    Math.floor(Math.random() * 1000);
+  const values =
+    sheet.getDataRange().getValues();
 
-  return prefix + '-' + timestamp + '-' + random;
+  let total = 0;
+
+  for (let i = 1; i < values.length; i++) {
+
+    const row = values[i];
+
+    if (String(row[2]) === String(routeId)) {
+
+      total +=
+        Number(row[7]) || 0;
+    }
+  }
+
+  return total;
 }
 
 
-function generateRouteId(
-  area,
-  schedule
-) {
+/**
+ * Get all routes.
+ */
+function getRoutes() {
 
-  const cleanArea =
-    String(area)
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, '');
+  const sheet =
+    getSheet(CONFIG.SHEETS.ROUTES);
 
-  const cleanSchedule =
-    String(schedule)
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, '-');
+  const values =
+    sheet.getDataRange().getValues();
 
-  return 'RT-' +
-    cleanArea +
-    '-' +
-    cleanSchedule;
+  if (values.length <= 1) {
+    return [];
+  }
+
+  return values.slice(1).map(function(row) {
+
+    return {
+      routeId: row[0],
+      area: row[1],
+      schedule: row[2],
+      umkmCount: Number(row[3]) || 0,
+      householdCount: Number(row[4]) || 0,
+      estimatedLiters: Number(row[5]) || 0,
+      actualLiters: Number(row[6]) || 0,
+      supplierCount: Number(row[7]) || 0,
+      routeStatus: row[8],
+      revenue: Number(row[9]) || 0,
+      payoutCost: Number(row[10]) || 0,
+      contributionMargin: Number(row[11]) || 0,
+      litersPerRoute: Number(row[12]) || 0
+    };
+  });
 }
 
 
-function validateRequired(
-  data,
-  fields
-) {
+/* =================================================
+   7. WEIGHING & PAYOUT
+   ================================================= */
 
-  fields.forEach(field => {
+/**
+ * Create weighing transaction.
+ *
+ * IMPORTANT:
+ * The frontend does NOT determine payout price.
+ *
+ * Backend retrieves the active supplier payout
+ * from PRICING as the source of truth.
+ *
+ * Sheet:
+ * WEIGHING_PAYOUT
+ *
+ * Columns:
+ * A Transaction ID
+ * B Request ID
+ * C Route ID
+ * D Supplier ID
+ * E Estimated Volume L
+ * F Actual Volume L
+ * G Payout / L
+ * H Total Payout
+ * I Weighed At
+ * J Payment Status
+ */
+function createWeighing(data) {
+
+  validateRequired(data, [
+    'requestId',
+    'actualVolumeL'
+  ]);
+
+  const actualVolumeL =
+    Number(data.actualVolumeL);
+
+  if (
+    !Number.isFinite(actualVolumeL) ||
+    actualVolumeL <= 0
+  ) {
+    throw new Error(
+      'Actual volume harus lebih besar dari 0 liter.'
+    );
+  }
+
+  const request =
+    findPickupRequest(data.requestId);
+
+  if (!request) {
+    throw new Error(
+      'Pickup request tidak ditemukan.'
+    );
+  }
+
+  if (
+    request.status === 'Completed' ||
+    request.status === 'Cancelled'
+  ) {
+    throw new Error(
+      'Pickup request sudah tidak dapat ditimbang.'
+    );
+  }
+
+  const weighingSheet =
+    getSheet(CONFIG.SHEETS.WEIGHING_PAYOUT);
+
+  const weighingValues =
+    weighingSheet.getDataRange().getValues();
+
+  // Duplicate prevention:
+  // one request can only have one weighing record.
+  for (let i = 1; i < weighingValues.length; i++) {
 
     if (
-      data[field] === undefined ||
-      data[field] === null ||
-      data[field] === ''
+      String(weighingValues[i][1]) ===
+      String(data.requestId)
     ) {
 
       throw new Error(
-        'Missing required field: ' + field
+        'Request ini sudah memiliki hasil penimbangan.'
       );
+    }
+  }
 
+  // Source of truth comes from backend pricing.
+  const pricing =
+    getActivePricing();
+
+  const supplierPayoutPerL =
+    Number(pricing.supplierPayoutPerL);
+
+  if (
+    !Number.isFinite(supplierPayoutPerL) ||
+    supplierPayoutPerL <= 0
+  ) {
+
+    throw new Error(
+      'Harga payout supplier aktif tidak valid.'
+    );
+  }
+
+  const totalPayout =
+    actualVolumeL * supplierPayoutPerL;
+
+  const transactionId =
+    generateId('TXN');
+
+  const paymentStatus =
+    data.paymentStatus || 'Pending';
+
+  const row = [
+    transactionId,
+    request.requestId,
+    request.routeId,
+    request.supplierId,
+    request.estimatedVolumeL,
+    actualVolumeL,
+    supplierPayoutPerL,
+    totalPayout,
+    new Date(),
+    paymentStatus
+  ];
+
+  weighingSheet.appendRow(row);
+
+  // Mark pickup completed after successful weighing.
+  updatePickupStatus(
+    request.requestId,
+    'Completed'
+  );
+
+  // Refresh route calculations.
+  updateRoute(request.routeId);
+
+  // Clear short-lived queue cache.
+  CacheService
+    .getScriptCache()
+    .remove('JEMPUT_JELANTAH_WEIGHING_QUEUE');
+
+  return {
+    success: true,
+    transactionId: transactionId,
+    requestId: request.requestId,
+    routeId: request.routeId,
+    supplierId: request.supplierId,
+    estimatedVolumeL: request.estimatedVolumeL,
+    actualVolumeL: actualVolumeL,
+    supplierPayoutPerL: supplierPayoutPerL,
+    totalPayout: totalPayout,
+    paymentStatus: paymentStatus
+  };
+}
+
+
+/**
+ * Get requests that are ready for weighing.
+ */
+function getWeighingQueue() {
+
+  const cache =
+    CacheService.getScriptCache();
+
+  const cached =
+    cache.get(
+      'JEMPUT_JELANTAH_WEIGHING_QUEUE'
+    );
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  const requestSheet =
+    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
+
+  const values =
+    requestSheet.getDataRange().getValues();
+
+  const queue = [];
+
+  for (let i = 1; i < values.length; i++) {
+
+    const row = values[i];
+
+    const status =
+      String(row[7] || '');
+
+    if (
+      status === 'Completed' ||
+      status === 'Cancelled'
+    ) {
+      continue;
     }
 
+    const supplier =
+      findSupplier(row[1]);
+
+    queue.push({
+
+      requestId: row[0],
+
+      supplierId: row[1],
+
+      supplierName:
+        supplier
+          ? supplier.name
+          : 'Unknown Supplier',
+
+      supplierType: row[2],
+
+      area: row[3],
+
+      estimatedVolumeL:
+        Number(row[4]) || 0,
+
+      preferredSchedule: row[5],
+
+      routeId: row[6],
+
+      status: status
+    });
+  }
+
+  cache.put(
+    'JEMPUT_JELANTAH_WEIGHING_QUEUE',
+    JSON.stringify(queue),
+    CONFIG.CACHE.WEIGHING_QUEUE_SECONDS
+  );
+
+  return queue;
+}
+
+
+/* =================================================
+   8. PRICING
+   ================================================= */
+
+/**
+ * Get active pricing.
+ *
+ * PRICING columns:
+ * A Effective Date
+ * B Reference Price / L
+ * C Supplier Payout / L
+ * D Source
+ * E Status
+ *
+ * The latest effective ACTIVE record is used.
+ *
+ * IMPORTANT:
+ * This is a pricing reference stored in the MVP.
+ * It is NOT automatically a live market API.
+ */
+function getActivePricing() {
+
+  const sheet =
+    getSheet(CONFIG.SHEETS.PRICING);
+
+  const values =
+    sheet.getDataRange().getValues();
+
+  if (values.length <= 1) {
+    throw new Error(
+      'PRICING sheet belum memiliki data.'
+    );
+  }
+
+  const headers =
+    values[0].map(function(header) {
+      return String(header)
+        .trim()
+        .toLowerCase();
+    });
+
+  const effectiveIndex =
+    headers.indexOf('effective date');
+
+  const referenceIndex =
+    headers.indexOf('reference price/l');
+
+  const payoutIndex =
+    headers.indexOf('supplier payout/l');
+
+  const sourceIndex =
+    headers.indexOf('source');
+
+  const statusIndex =
+    headers.indexOf('status');
+
+  if (
+    effectiveIndex === -1 ||
+    referenceIndex === -1 ||
+    payoutIndex === -1 ||
+    sourceIndex === -1 ||
+    statusIndex === -1
+  ) {
+
+    throw new Error(
+      'Header PRICING tidak sesuai schema.'
+    );
+  }
+
+  const activeRows = [];
+
+  for (let i = 1; i < values.length; i++) {
+
+    const row = values[i];
+
+    const status =
+      String(row[statusIndex] || '')
+        .trim()
+        .toLowerCase();
+
+    if (status !== 'active') {
+      continue;
+    }
+
+    const effectiveDate =
+      row[effectiveIndex] instanceof Date
+        ? row[effectiveIndex]
+        : new Date(row[effectiveIndex]);
+
+    activeRows.push({
+      effectiveDate: effectiveDate,
+      referencePricePerL:
+        Number(row[referenceIndex]) || 0,
+      supplierPayoutPerL:
+        Number(row[payoutIndex]) || 0,
+      source:
+        row[sourceIndex]
+    });
+  }
+
+  if (activeRows.length === 0) {
+
+    throw new Error(
+      'Tidak ada pricing aktif.'
+    );
+  }
+
+  // Use latest effective date.
+  activeRows.sort(function(a, b) {
+
+    const timeA =
+      a.effectiveDate instanceof Date &&
+      !isNaN(a.effectiveDate.getTime())
+        ? a.effectiveDate.getTime()
+        : 0;
+
+    const timeB =
+      b.effectiveDate instanceof Date &&
+      !isNaN(b.effectiveDate.getTime())
+        ? b.effectiveDate.getTime()
+        : 0;
+
+    return timeB - timeA;
+  });
+
+  const active =
+    activeRows[0];
+
+  return {
+
+    referencePricePerL:
+      active.referencePricePerL,
+
+    supplierPayoutPerL:
+      active.supplierPayoutPerL,
+
+    buyerPricePerL:
+      active.referencePricePerL,
+
+    source:
+      active.source,
+
+    effectiveDate:
+      active.effectiveDate
+  };
+}
+
+
+/**
+ * Public pricing function for frontend.
+ *
+ * Cached for short periods to avoid repeated
+ * spreadsheet reads.
+ */
+function getCurrentPricing() {
+
+  const cache =
+    CacheService.getScriptCache();
+
+  const cacheKey =
+    'JEMPUT_JELANTAH_CURRENT_PRICING';
+
+  const cached =
+    cache.get(cacheKey);
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  try {
+
+    const pricing =
+      getActivePricing();
+
+    const timezone =
+      Session.getScriptTimeZone();
+
+    let effectiveDate = '';
+
+    if (
+      pricing.effectiveDate instanceof Date &&
+      !isNaN(
+        pricing.effectiveDate.getTime()
+      )
+    ) {
+
+      effectiveDate =
+        Utilities.formatDate(
+          pricing.effectiveDate,
+          timezone,
+          'dd MMM yyyy HH:mm'
+        );
+    }
+
+    const result = {
+
+      success: true,
+
+      referencePricePerL:
+        pricing.referencePricePerL,
+
+      supplierPayoutPerL:
+        pricing.supplierPayoutPerL,
+
+      source:
+        pricing.source,
+
+      effectiveDate:
+        effectiveDate
+    };
+
+    cache.put(
+      cacheKey,
+      JSON.stringify(result),
+      CONFIG.CACHE.PRICING_SECONDS
+    );
+
+    return result;
+
+  } catch (error) {
+
+    return {
+      success: false,
+      message: error.message
+    };
+  }
+}
+
+
+/**
+ * Estimate supplier payout for a given volume.
+ */
+function getEstimatedPayout(volumeL) {
+
+  const volume =
+    Number(volumeL);
+
+  if (
+    !Number.isFinite(volume) ||
+    volume <= 0
+  ) {
+
+    return {
+      success: false,
+      message: 'Volume tidak valid.'
+    };
+  }
+
+  const pricing =
+    getActivePricing();
+
+  const payoutPerL =
+    Number(pricing.supplierPayoutPerL) || 0;
+
+  const estimatedPayout =
+    volume * payoutPerL;
+
+  return {
+    success: true,
+    volumeL: volume,
+    referencePricePerL:
+      pricing.referencePricePerL,
+    supplierPayoutPerL:
+      payoutPerL,
+    estimatedPayout:
+      estimatedPayout,
+    source:
+      pricing.source,
+    note:
+      'Estimasi payout menggunakan harga payout supplier, bukan harga referensi pasar.'
+  };
+}
+
+
+/* =================================================
+   9. HOME DATA
+   ================================================= */
+
+/**
+ * Consolidated homepage data.
+ *
+ * Reduces multiple frontend server calls into
+ * one backend request.
+ *
+ * Phone is optional.
+ */
+function getHomeData(phone) {
+
+  const pricing =
+    getCurrentPricing();
+
+  let progress = null;
+
+  if (phone) {
+
+    progress =
+      getCollectionProgressByPhone(phone);
+  }
+
+  return {
+    success: true,
+    pricing: pricing,
+    progress: progress
+  };
+}
+
+
+/* =================================================
+   10. DASHBOARD
+   ================================================= */
+
+/**
+ * Calculate dashboard metrics from current
+ * spreadsheet records.
+ *
+ * IMPORTANT:
+ * These metrics describe records available
+ * in the MVP. They are not automatically
+ * business validation or market traction.
+ */
+function getDashboard() {
+
+  const supplierSheet =
+    getSheet(CONFIG.SHEETS.SUPPLIERS);
+
+  const requestSheet =
+    getSheet(CONFIG.SHEETS.PICKUP_REQUESTS);
+
+  const weighingSheet =
+    getSheet(CONFIG.SHEETS.WEIGHING_PAYOUT);
+
+  const routeSheet =
+    getSheet(CONFIG.SHEETS.ROUTES);
+
+  const suppliers =
+    supplierSheet.getDataRange().getValues();
+
+  const requests =
+    requestSheet.getDataRange().getValues();
+
+  const weighings =
+    weighingSheet.getDataRange().getValues();
+
+  const routes =
+    routeSheet.getDataRange().getValues();
+
+  /* -----------------------------
+     Supplier metrics
+     ----------------------------- */
+
+  const supplierRows =
+    suppliers.slice(1);
+
+  const totalSuppliers =
+    supplierRows.length;
+
+  let activeUmkm = 0;
+  let households = 0;
+
+  supplierRows.forEach(function(row) {
+
+    const type =
+      String(row[3] || '')
+        .toLowerCase();
+
+    if (type.includes('umkm')) {
+      activeUmkm++;
+    } else if (
+      type.includes('household') ||
+      type.includes('rumah')
+    ) {
+      households++;
+    }
+  });
+
+
+  /* -----------------------------
+     Pickup request metrics
+     ----------------------------- */
+
+  const requestRows =
+    requests.slice(1);
+
+  const pickupRequests =
+    requestRows.length;
+
+  let completedPickups = 0;
+  let estimatedLiters = 0;
+
+  requestRows.forEach(function(row) {
+
+    estimatedLiters +=
+      Number(row[4]) || 0;
+
+    if (row[7] === 'Completed') {
+      completedPickups++;
+    }
+  });
+
+
+  /* -----------------------------
+     Weighing metrics
+     ----------------------------- */
+
+  const weighingRows =
+    weighings.slice(1);
+
+  let actualLiters = 0;
+  let totalPayout = 0;
+
+  const completedRequestIds = {};
+
+  weighingRows.forEach(function(row) {
+
+    actualLiters +=
+      Number(row[5]) || 0;
+
+    totalPayout +=
+      Number(row[7]) || 0;
+
+    completedRequestIds[
+      String(row[1])
+    ] = true;
+  });
+
+
+  /* -----------------------------
+     Route metrics
+     ----------------------------- */
+
+  const routeRows =
+    routes.slice(1);
+
+  const totalRoutes =
+    routeRows.length;
+
+  let completedRoutes = 0;
+  let routesAtThreshold = 0;
+  let totalRevenue = 0;
+  let contributionMargin = 0;
+
+  routeRows.forEach(function(row) {
+
+    const status =
+      String(row[8] || '');
+
+    const liters =
+      Number(row[12]) || 0;
+
+    if (status === 'Completed') {
+      completedRoutes++;
+    }
+
+    if (
+      liters >=
+      CONFIG.BUSINESS_RULES.ROUTE_THRESHOLD_L
+    ) {
+      routesAtThreshold++;
+    }
+
+    totalRevenue +=
+      Number(row[9]) || 0;
+
+    contributionMargin +=
+      Number(row[11]) || 0;
+  });
+
+
+  const averageLitersPerRoute =
+    totalRoutes > 0
+      ? actualLiters / totalRoutes
+      : 0;
+
+  const routeThresholdRate =
+    totalRoutes > 0
+      ? routesAtThreshold / totalRoutes
+      : 0;
+
+  const completionRate =
+    pickupRequests > 0
+      ? completedPickups / pickupRequests
+      : 0;
+
+
+  /* -----------------------------
+     Repeat contribution
+     ----------------------------- */
+
+  const supplierRequestCount = {};
+
+  requestRows.forEach(function(row) {
+
+    const supplierId =
+      String(row[1]);
+
+    supplierRequestCount[supplierId] =
+      (supplierRequestCount[supplierId] || 0) + 1;
+  });
+
+  let repeatSuppliers = 0;
+
+  Object.keys(supplierRequestCount)
+    .forEach(function(supplierId) {
+
+      if (
+        supplierRequestCount[supplierId] > 1
+      ) {
+        repeatSuppliers++;
+      }
+    });
+
+  const repeatContributionRate =
+    totalSuppliers > 0
+      ? repeatSuppliers / totalSuppliers
+      : 0;
+
+
+  /* -----------------------------
+     Pricing metrics
+     ----------------------------- */
+
+  let averagePayoutPerLiter = 0;
+
+  if (actualLiters > 0) {
+
+    averagePayoutPerLiter =
+      totalPayout / actualLiters;
+  }
+
+  const contributionMarginPerLiter =
+    actualLiters > 0
+      ? contributionMargin / actualLiters
+      : 0;
+
+  const contributionMarginRate =
+    totalRevenue > 0
+      ? contributionMargin / totalRevenue
+      : 0;
+
+
+  /* -----------------------------
+     Dashboard result
+     ----------------------------- */
+
+  const dashboard = {
+
+    totalSuppliers:
+      totalSuppliers,
+
+    activeUmkm:
+      activeUmkm,
+
+    households:
+      households,
+
+    pickupRequests:
+      pickupRequests,
+
+    completedPickups:
+      completedPickups,
+
+    estimatedLiters:
+      estimatedLiters,
+
+    actualLiters:
+      actualLiters,
+
+    totalRoutes:
+      totalRoutes,
+
+    completedRoutes:
+      completedRoutes,
+
+    averageLitersPerRoute:
+      averageLitersPerRoute,
+
+    routesAtThreshold:
+      routesAtThreshold,
+
+    routeThresholdRate:
+      routeThresholdRate,
+
+    completionRate:
+      completionRate,
+
+    repeatContributionRate:
+      repeatContributionRate,
+
+    averagePayoutPerLiter:
+      averagePayoutPerLiter,
+
+    totalPayout:
+      totalPayout,
+
+    totalRevenue:
+      totalRevenue,
+
+    contributionMargin:
+      contributionMargin,
+
+    contributionMarginPerLiter:
+      contributionMarginPerLiter,
+
+    contributionMarginRate:
+      contributionMarginRate,
+
+    routeThresholdL:
+      CONFIG.BUSINESS_RULES.ROUTE_THRESHOLD_L,
+
+    dataStatus:
+      'Recorded'
+  };
+
+
+  /* -----------------------------
+     Write dashboard snapshot
+     ----------------------------- */
+
+  const dashboardSheet =
+    getSheet(CONFIG.SHEETS.DASHBOARD);
+
+  const timestamp =
+    new Date();
+
+  const dashboardRows = [
+
+    ['Metric', 'Value', 'Status', 'Updated At'],
+
+    [
+      'Total Suppliers',
+      totalSuppliers,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'UMKM Suppliers',
+      activeUmkm,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Household Suppliers',
+      households,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Pickup Requests',
+      pickupRequests,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Completed Pickups',
+      completedPickups,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Estimated Liters',
+      estimatedLiters,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Actual Liters',
+      actualLiters,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Average Liters / Route',
+      averageLitersPerRoute,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Routes ≥ Threshold',
+      routesAtThreshold,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Pickup Completion Rate',
+      completionRate,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Repeat Contribution Rate',
+      repeatContributionRate,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Average Supplier Payout / L',
+      averagePayoutPerLiter,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Total Supplier Payout',
+      totalPayout,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Total Revenue',
+      totalRevenue,
+      'Recorded',
+      timestamp
+    ],
+
+    [
+      'Contribution Margin',
+      contributionMargin,
+      'Calculated',
+      timestamp
+    ],
+
+    [
+      'Contribution Margin / L',
+      contributionMarginPerLiter,
+      'Calculated',
+      timestamp
+    ],
+
+    [
+      'Contribution Margin Rate',
+      contributionMarginRate,
+      'Calculated',
+      timestamp
+    ]
+  ];
+
+  dashboardSheet.clearContents();
+
+  dashboardSheet
+    .getRange(
+      1,
+      1,
+      dashboardRows.length,
+      dashboardRows[0].length
+    )
+    .setValues(dashboardRows);
+
+  return dashboard;
+}
+
+
+/* =================================================
+   11. VALIDATION & HELPERS
+   ================================================= */
+
+/**
+ * Return a Google Sheet by name.
+ */
+function getSheet(sheetName) {
+
+  const spreadsheet =
+    SpreadsheetApp.getActiveSpreadsheet();
+
+  const sheet =
+    spreadsheet.getSheetByName(sheetName);
+
+  if (!sheet) {
+
+    throw new Error(
+      'Sheet tidak ditemukan: ' +
+      sheetName
+    );
+  }
+
+  return sheet;
+}
+
+
+/**
+ * Generate unique ID.
+ */
+function generateId(prefix) {
+
+  return prefix +
+    '-' +
+    Date.now() +
+    '-' +
+    Math.floor(
+      Math.random() * 1000
+    );
+}
+
+
+/**
+ * Validate required object fields.
+ */
+function validateRequired(data, fields) {
+
+  if (!data) {
+    throw new Error(
+      'Data tidak ditemukan.'
+    );
+  }
+
+  fields.forEach(function(field) {
+
+    const value =
+      data[field];
+
+    if (
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ''
+    ) {
+
+      throw new Error(
+        field +
+        ' wajib diisi.'
+      );
+    }
   });
 }
+
+
+/**
+ * Return JSON response for doPost.
+ */
 function jsonResponse(data) {
 
   return ContentService
@@ -2352,691 +2106,4 @@ function jsonResponse(data) {
     .setMimeType(
       ContentService.MimeType.JSON
     );
-}
-
-function testCreateWeighing() {
-
-  const data = {
-    requestId: 'REQ-1789222076467-901',
-    actualVolumeL: 23,
-    pricePerL: 5500
-  };
-
-  Logger.log('DATA:');
-  Logger.log(JSON.stringify(data));
-
-  const result = createWeighing(data);
-
-  Logger.log('RESULT:');
-  Logger.log(JSON.stringify(result));
-}
-
-function testValidateRequired() {
-
-  const testData = {
-    requestId: 'REQ-1789222249386-115',
-    actualVolumeL: 23,
-    pricePerL: 5500
-  };
-
-  const testFields = [
-    'requestId',
-    'actualVolumeL',
-    'pricePerL'
-  ];
-
-  validateRequired(testData, testFields);
-
-  Logger.log('validateRequired PASS');
-}
-
-function getActivePricing() {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.PRICING);
-
-  const data =
-    sheet.getDataRange().getValues();
-
-  if (data.length <= 1) {
-    throw new Error(
-      'No pricing data found.'
-    );
-  }
-
-  for (let i = data.length - 1; i >= 1; i--) {
-
-    const status =
-      String(data[i][4])
-        .trim()
-        .toUpperCase();
-
-    if (status === 'ACTIVE') {
-
-      return {
-
-        effectiveDate: data[i][0],
-
-        referencePricePerL:
-          Number(data[i][1]) || 0,
-
-        supplierPayoutPerL:
-          Number(data[i][2]) || 0,
-
-        source:
-          String(data[i][3] || ''),
-
-        status:
-          String(data[i][4] || '')
-
-      };
-
-    }
-
-  }
-
-  throw new Error(
-    'No active pricing found.'
-  );
-}
-
-/**
- * =========================
- * CURRENT UCO PRICE
- * =========================
- *
- * Returns the latest active
- * UCO reference price and
- * supplier payout information.
- *
- * PRICING sheet is the
- * current source of truth.
- */
-
-function getCurrentPricing() {
-
-  const cache =
-    CacheService.getScriptCache();
-
-  const cacheKey =
-    'JEMPUT_JELANTAH_PRICING';
-
-  try {
-
-    // ==========================================
-    // CHECK CACHE
-    // ==========================================
-
-    const cached =
-      cache.get(cacheKey);
-
-    if (cached) {
-
-      console.log(
-        'PRICING: served from cache'
-      );
-
-      return JSON.parse(cached);
-
-    }
-
-
-    // ==========================================
-    // READ PRICING SHEET
-    // ==========================================
-
-    const ss =
-      SpreadsheetApp.getActiveSpreadsheet();
-
-    const sheet =
-      ss.getSheetByName(
-        'PRICING'
-      );
-
-
-    if (!sheet) {
-
-      return {
-
-        success: false,
-
-        message:
-          'Sheet PRICING tidak ditemukan.'
-
-      };
-
-    }
-
-
-    const data =
-      sheet.getDataRange().getValues();
-
-
-    if (data.length < 2) {
-
-      return {
-
-        success: false,
-
-        message:
-          'Data PRICING belum tersedia.'
-
-      };
-
-    }
-
-
-    // ==========================================
-    // HEADER INDEX
-    // ==========================================
-
-    const headers =
-      data[0];
-
-
-    const effectiveDateIndex =
-      headers.indexOf(
-        'Effective Date'
-      );
-
-    const referencePriceIndex =
-      headers.indexOf(
-        'Reference Price/L'
-      );
-
-    const supplierPayoutIndex =
-      headers.indexOf(
-        'Supplier Payout/L'
-      );
-
-    const sourceIndex =
-      headers.indexOf(
-        'Source'
-      );
-
-    const statusIndex =
-      headers.indexOf(
-        'Status'
-      );
-
-
-    if (
-      effectiveDateIndex === -1 ||
-      referencePriceIndex === -1 ||
-      supplierPayoutIndex === -1 ||
-      sourceIndex === -1 ||
-      statusIndex === -1
-    ) {
-
-      return {
-
-        success: false,
-
-        message:
-          'Header sheet PRICING tidak sesuai.'
-
-      };
-
-    }
-
-
-    // ==========================================
-    // FIND ACTIVE PRICE
-    // ==========================================
-
-    let activeRow = null;
-
-
-    for (
-      let i = 1;
-      i < data.length;
-      i++
-    ) {
-
-      const row =
-        data[i];
-
-
-      const status =
-        String(
-          row[statusIndex] || ''
-        )
-        .trim()
-        .toLowerCase();
-
-
-      if (
-        status === 'active'
-      ) {
-
-        activeRow =
-          row;
-
-      }
-
-    }
-
-
-    if (!activeRow) {
-
-      return {
-
-        success: false,
-
-        message:
-          'Tidak ada harga dengan status Active.'
-
-      };
-
-    }
-
-
-    // ==========================================
-    // BUILD RESULT
-    // ==========================================
-
-    const effectiveDate =
-      activeRow[
-        effectiveDateIndex
-      ];
-
-
-    const result = {
-
-      success: true,
-
-      referencePricePerL:
-        Number(
-          activeRow[
-            referencePriceIndex
-          ]
-        ) || 0,
-
-      supplierPayoutPerL:
-        Number(
-          activeRow[
-            supplierPayoutIndex
-          ]
-        ) || 0,
-
-      source:
-        String(
-          activeRow[
-            sourceIndex
-          ] || ''
-        ),
-
-      effectiveDate:
-        effectiveDate instanceof Date
-          ? Utilities.formatDate(
-              effectiveDate,
-              Session.getScriptTimeZone(),
-              'dd MMM yyyy HH:mm'
-            )
-          : String(
-              effectiveDate || ''
-            )
-
-    };
-
-
-    // ==========================================
-    // CACHE 60 SECONDS
-    // ==========================================
-
-    cache.put(
-      cacheKey,
-      JSON.stringify(result),
-      60
-    );
-
-
-    console.log(
-      'PRICING: loaded from sheet and cached'
-    );
-
-
-    return result;
-
-
-  } catch (error) {
-
-    console.error(
-      'getCurrentPricing error:',
-      error
-    );
-
-
-    return {
-
-      success: false,
-
-      message:
-        error.message ||
-        'Gagal mengambil harga beli Jemput Jelantah.'
-
-    };
-
-  }
-
-}
-
-function getHomeData(phone) {
-
-  try {
-
-    // ==========================================
-    // PRICING
-    // ==========================================
-
-    const pricing =
-      getCurrentPricing();
-
-
-    // ==========================================
-    // PROGRESS
-    // ==========================================
-
-    let progress = {
-
-      success: true,
-
-      collectedLiters: 0,
-
-      targetLiters: 10,
-
-      remainingLiters: 10,
-
-      progressPercent: 0
-
-    };
-
-
-    if (
-      phone &&
-      String(phone).trim()
-    ) {
-
-      const progressResult =
-        getCollectionProgressByPhone(
-          phone
-        );
-
-
-      if (
-        progressResult &&
-        progressResult.success
-      ) {
-
-        progress =
-          progressResult;
-
-      }
-
-    }
-
-
-    // ==========================================
-    // RETURN HOME DATA
-    // ==========================================
-
-    return {
-
-      success: true,
-
-      pricing:
-        pricing,
-
-      progress:
-        progress
-
-    };
-
-
-  } catch (error) {
-
-    console.error(
-      'getHomeData error:',
-      error
-    );
-
-
-    return {
-
-      success: false,
-
-      message:
-        error.message ||
-        'Gagal mengambil data Home.'
-
-    };
-
-  }
-
-}
-
-function testActivePricing() {
-
-  const pricing =
-    getActivePricing();
-
-  Logger.log(
-    JSON.stringify(pricing)
-  );
-
-}
-
-function testPricingSheet() {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.PRICING);
-
-  const data =
-    sheet.getDataRange().getValues();
-
-  Logger.log(
-    JSON.stringify(data)
-  );
-
-}
-
-function recalculateAllRoutes() {
-
-  const routeSheet =
-    getSheet(CONFIG.SHEETS.ROUTES);
-
-  const data =
-    routeSheet.getDataRange().getValues();
-
-  for (let i = 1; i < data.length; i++) {
-
-    const routeId =
-      String(data[i][0]).trim();
-
-    if (routeId) {
-      updateRoute(routeId);
-    }
-
-  }
-
-  console.log(
-    'All routes recalculated.'
-  );
-
-}
-
-function testCreateWeighing() {
-
-  const requestId =
-    'REQ-1789226140274-45';
-
-  const pricing =
-    getActivePricing();
-
-  const result =
-    createWeighing({
-
-      requestId: requestId,
-
-      actualVolumeL: 8.5,
-
-      pricePerL:
-        pricing.supplierPayoutPerL,
-
-      paymentStatus: 'Paid'
-
-    });
-
-  console.log(result);
-
-}
-
-function auditDuplicateWeighings() {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.WEIGHING_PAYOUT);
-
-  const data =
-    sheet.getDataRange().getValues();
-
-  const seen = {};
-  const duplicates = [];
-
-  for (let i = 1; i < data.length; i++) {
-
-    const requestId =
-      String(data[i][1]).trim();
-
-    if (!requestId) {
-      continue;
-    }
-
-    if (seen[requestId]) {
-
-      duplicates.push({
-
-        requestId: requestId,
-
-        firstRow: seen[requestId],
-
-        duplicateRow: i + 1,
-
-        transactionId:
-          data[i][0],
-
-        actualVolumeL:
-          data[i][5],
-
-        payout:
-          data[i][7]
-
-      });
-
-    } else {
-
-      seen[requestId] = i + 1;
-
-    }
-
-  }
-
-  console.log(
-    JSON.stringify(
-      duplicates,
-      null,
-      2
-    )
-  );
-
-  return duplicates;
-
-}
-
-function removeDuplicateWeighing() {
-
-  const sheet =
-    getSheet(CONFIG.SHEETS.WEIGHING_PAYOUT);
-
-  const rowToDelete = 4;
-
-  sheet.deleteRow(rowToDelete);
-
-  console.log(
-    'Duplicate weighing removed from row ' +
-    rowToDelete
-  );
-
-}
-
-function testCollectionProgress() {
-
-  const result =
-    getCollectionProgressByPhone('819191');
-
-  Logger.log(result);
-
-  return result;
-}
-
-function getEstimatedPayout(volumeL) {
-
-  const pricing =
-    getActivePricing();
-
-  const volume =
-    Number(volumeL) || 0;
-
-  const referencePricePerL =
-    Number(
-      pricing.referencePricePerL
-    ) || 0;
-
-  const supplierPayoutPerL =
-    Number(
-      pricing.supplierPayoutPerL
-    ) || 0;
-
-  const estimatedPayout =
-    volume * supplierPayoutPerL;
-
-  return {
-
-    success: true,
-
-    volumeL:
-      volume,
-
-    referencePricePerL:
-      referencePricePerL,
-
-    supplierPayoutPerL:
-      supplierPayoutPerL,
-
-    estimatedPayout:
-      estimatedPayout,
-
-    source:
-      pricing.source || '',
-
-    effectiveDate:
-      pricing.effectiveDate || '',
-
-    status:
-      pricing.status || 'Active',
-
-    note:
-      'Estimasi payout menggunakan harga payout supplier, bukan harga referensi pasar.'
-
-  };
-
-}
-
-function testEstimatedPayout() {
-
-  const result =
-    getEstimatedPayout(8);
-
-  Logger.log(result);
-
-  return result;
 }
