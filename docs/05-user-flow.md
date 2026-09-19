@@ -1,48 +1,509 @@
-# User Flow — Jemput Jelantah
+# User Flow & Product Interaction
 
-## 1. Purpose
+## 1. Overview
 
-This document defines the end-to-end user and operational flow of Jemput Jelantah.
+Jemput Jelantah is designed around a simple operational loop:
 
-The flow connects supplier collection, area-based aggregation, scheduled pickup, route status, weighing, and supplier payout.
+> **COLLECT → SCHEDULE → AGGREGATE → TRACK → WEIGH → GET PAID**
 
-The primary product principle is:
+The user experience is connected directly to the operational workflow.
 
-**Collect → Schedule → Aggregate → Track → Weigh → Get Paid**
+The supplier submits a pickup request, the system aggregates nearby requests, the route is dispatched when it reaches the internal operating threshold, and the final payout is calculated from verified weighing.
 
 ---
 
-## 2. Primary Supplier Flow
+# 2. User Types
 
-The primary flow is designed for a new or returning supplier who wants to submit a new pickup request.
+The MVP supports two supplier types:
+
+### 1. Culinary Micro-UMKM
+
+Potential route anchor with relatively higher recurring UCO volume.
+
+### 2. Household
+
+Potential route densifier that can contribute additional UCO volume around an existing route anchor.
+
+These roles are product hypotheses based on the current research sample and are not yet operationally validated.
+
+---
+
+# 3. Primary User Journey
+
+The primary new-user journey is:
+
+> **Home → Select Supplier Type → Estimate Volume → Area → Schedule → Confirm → Track → Weigh → Get Paid**
+
+The flow intentionally minimizes the number of steps required to create a pickup request.
+
+---
+
+# 4. New Supplier Flow
+
+## Step 1 — Home
+
+The supplier enters the Jemput Jelantah MVP.
+
+Primary action:
+
+**Mulai Pengumpulan**
+
+Secondary action:
+
+**Cek Status Pickup**
+
+The product does not require account registration for the MVP.
+
+---
+
+## Step 2 — Select Supplier Type
+
+The supplier chooses:
+
+### UMKM Kuliner
+
+or
+
+### Rumah Tangga
+
+The selection helps the product distinguish supplier segments for operational analysis.
+
+---
+
+## Step 3 — Input Estimated Volume
+
+The supplier enters the estimated amount of UCO available for collection.
+
+Example:
+
+> **Estimated Volume: 8L**
+
+This number is an example used to demonstrate the interaction.
+
+> **Evidence status: ILLUSTRATIVE.**
+
+The estimated volume is used for route aggregation before pickup.
+
+---
+
+# 5. Area Selection
+
+The supplier selects the available collection area.
+
+Example MVP areas:
+
+* Patrang
+* Sumbersari
+* Kaliwates
+* Ajung
+
+These areas are configured for the MVP and do not represent validated route-density results.
+
+The area is important because route aggregation is based on geographic concentration.
+
+---
+
+# 6. Pickup Schedule
+
+The supplier selects an available pickup window.
+
+Example:
+
+| Day      | Time        |
+| -------- | ----------- |
+| Thursday | 09:00–12:00 |
+| Thursday | 13:00–16:00 |
+| Saturday | 09:00–12:00 |
+| Saturday | 13:00–16:00 |
+
+The schedule configuration can be changed during operational validation.
+
+---
+
+# 7. Request Confirmation
+
+Before submitting, the user reviews:
+
+* Supplier type
+* Estimated volume
+* Collection area
+* Pickup schedule
+
+Primary CTA:
+
+**Confirm Pickup**
+
+After confirmation:
+
+> **Pickup Request Created**
+
+The system generates a unique request ID.
+
+---
+
+# 8. Request Created
+
+After submission, the request enters:
+
+> **Pending**
+
+The request is then available for area and schedule aggregation.
+
+The user does not immediately receive a pickup guarantee.
+
+This distinction is important because the pickup route depends on aggregated supply.
+
+---
+
+# 9. Aggregation Flow
+
+The backend groups pickup requests using:
+
+* Area
+* Pickup schedule
+* Route status
+
+### Aggregation Logic
+
+> **Estimated Route Volume = Σ Estimated Supplier Volume**
+
+For example:
+
+| Supplier    | Estimated Volume |
+| ----------- | ---------------: |
+| UMKM A      |              20L |
+| Household B |               4L |
+| Household C |               6L |
+| Household D |               8L |
+| **Total**   |          **38L** |
+
+This is an **illustrative example**, not an actual route result.
+
+---
+
+# 10. Route Threshold
+
+The MVP uses:
+
+> **50L = Internal Pilot Operating Threshold**
+
+The route checks whether aggregated estimated volume has reached the threshold.
+
+### If < 50L
+
+**Continue Aggregation**
+
+The system can:
+
+* wait for additional suppliers
+* invite nearby suppliers
+* maintain the selected collection window
+
+### If ≥ 50L
+
+**Route Ready**
+
+The route can move toward pickup execution.
+
+The 50L threshold is an internal pilot assumption and is not presented as an industry benchmark or proven break-even point.
+
+---
+
+# 11. Collection Progress
+
+The user can view progress toward the route threshold.
+
+### Formula
+
+> **Collection Progress = Aggregated Estimated Volume / 50L × 100**
+
+Example:
+
+> **40L / 50L = 80%**
+
+This is an **illustrative UI example**.
+
+A real route should display actual current aggregation data from the system.
+
+---
+
+# 12. Route Status
+
+The route follows:
+
+> **OPEN → READY → IN PROGRESS → COMPLETED**
+
+### OPEN
+
+Requests are still being aggregated.
+
+### READY
+
+Estimated volume has reached the internal threshold.
+
+### IN PROGRESS
+
+Pickup operation has started.
+
+### COMPLETED
+
+Pickup operation and transaction recording are complete.
+
+---
+
+# 13. Supplier Pickup Status
+
+Each supplier request has its own status.
+
+Recommended states:
+
+> **PENDING → SCHEDULED → IN PROGRESS → COMPLETED**
+
+Optional state:
+
+> **CANCELLED**
+
+This allows supplier-level status to remain separate from route-level status.
+
+For example:
+
+**Route:** READY
+
+while a supplier request may still be:
+
+**SCHEDULED**
+
+until the physical pickup starts.
+
+---
+
+# 14. Returning Supplier Flow
+
+Returning suppliers do not need to recreate their profile.
+
+The MVP uses phone number lookup.
+
+### Flow
+
+**HOME**
+
+↓
+
+**CEK STATUS PICKUP**
+
+↓
+
+**INPUT PHONE NUMBER**
+
+↓
+
+**FIND SUPPLIER**
+
+↓
+
+**SHOW ACTIVE / PREVIOUS REQUEST**
+
+↓
+
+**SHOW PICKUP STATUS**
+
+↓
+
+**SHOW COLLECTION PROGRESS**
+
+↓
+
+**SHOW WEIGHING & PAYOUT**
+
+This provides a lightweight lookup mechanism without implementing a full authentication system.
+
+---
+
+# 15. Collection Progress View
+
+The progress screen communicates:
+
+### Current Aggregated Volume
+
+Example:
+
+**40L**
+
+### Route Threshold
+
+**50L**
+
+### Remaining
+
+**10L**
+
+### Progress
+
+**80%**
+
+All numeric examples in this section are illustrative.
+
+The purpose of the screen is to answer:
+
+> **"How close is my area to having enough volume for pickup?"**
+
+---
+
+# 16. Pickup Execution
+
+When the route reaches the operational threshold and is dispatched:
+
+> **Route Ready → Pickup In Progress**
+
+The operator collects UCO from participating suppliers.
+
+The system records the pickup state.
+
+After the route is completed:
+
+> **Pickup In Progress → Pickup Completed**
+
+---
+
+# 17. Weighing Flow
+
+After physical collection, actual UCO volume is recorded.
+
+### Operator Flow
+
+**Completed Pickup**
+
+↓
+
+**Open Request**
+
+↓
+
+**Enter Actual Volume**
+
+↓
+
+**Validate Request**
+
+↓
+
+**Save Weighing**
+
+↓
+
+**Calculate Payout**
+
+The actual volume becomes the basis for the final supplier payout.
+
+---
+
+# 18. Estimated vs Actual Volume
+
+The product intentionally stores both:
+
+### Estimated Volume
+
+Provided by the supplier before pickup.
+
+### Actual Volume
+
+Recorded after physical weighing.
+
+This allows the product to measure estimation accuracy.
+
+### Example
+
+| Metric           | Example |
+| ---------------- | ------: |
+| Estimated Volume |      8L |
+| Actual Volume    |    7.5L |
+| Difference       |   -0.5L |
+
+This is an **illustrative example**.
+
+The actual pilot should use real weighing records to calculate the observed variance.
+
+---
+
+# 19. Payout Calculation
+
+The payout is based on actual collected volume.
+
+### Formula
+
+> **Supplier Payout = Actual Volume × Active Supplier Payout/L**
+
+Illustrative example:
+
+> Actual Volume = 8L
+> Supplier Payout = Rp5,500/L
+> Total Payout = Rp44,000
+
+This example is **ILLUSTRATIVE**, not an actual transaction.
+
+---
+
+# 20. Payout Transparency
+
+The supplier should be able to see:
+
+**Actual Volume**
+
+**Payout / Liter**
+
+**Total Payout**
+
+Example:
+
+> 8L × Rp5,500/L = Rp44,000
+
+The objective is to make the transaction calculation understandable and traceable.
+
+---
+
+# 21. Pricing Reference
+
+The MVP maintains an active pricing configuration containing:
+
+* Effective date
+* Reference buyer price/L
+* Supplier payout/L
+* Source
+* Active status
+
+The active pricing reference determines the payout calculation used by the system.
+
+Any price displayed in demo screens must be treated as illustrative unless it is explicitly sourced and dated as actual market data.
+
+---
+
+# 22. Complete Supplier Journey
 
 ```text
 HOME
   ↓
 MULAI PENGUMPULAN
   ↓
-PILIH SUPPLIER TYPE
-  ├── UMKM Kuliner
-  └── Rumah Tangga
+SELECT SUPPLIER TYPE
   ↓
 INPUT ESTIMATED VOLUME
   ↓
-PILIH AREA
+SELECT AREA
   ↓
-PILIH JADWAL PICKUP
+SELECT PICKUP SCHEDULE
   ↓
-KONFIRMASI REQUEST
+CONFIRM REQUEST
   ↓
 REQUEST CREATED
   ↓
-AREA AGGREGATION
+AREA + SCHEDULE AGGREGATION
   ↓
 ROUTE ≥ 50L?
   ├── NO
   │    ↓
-  │  WAIT / INVITE NEARBY SUPPLIERS
+  │  CONTINUE AGGREGATION
   │    ↓
-  │  COLLECTION PROGRESS
+  │  WAIT / INVITE NEARBY SUPPLIERS
   │
   └── YES
        ↓
@@ -52,22 +513,16 @@ ROUTE ≥ 50L?
        ↓
      PICKUP COMPLETED
        ↓
-     WEIGHING
-       ↓
-     ACTUAL VOLUME
+     ACTUAL WEIGHING
        ↓
      PAYOUT CALCULATION
        ↓
      COMPLETED
 ```
 
-The supplier does not need to complete a phone lookup before starting a new collection request.
-
 ---
 
-## 3. Returning Supplier Flow
-
-Returning suppliers can use the status-check flow to monitor an existing pickup request.
+# 23. Returning Supplier Journey
 
 ```text
 HOME
@@ -79,505 +534,309 @@ INPUT PHONE NUMBER
 SUPPLIER FOUND?
   ├── NO
   │    ↓
-  │  SHOW NOT FOUND / CREATE NEW REQUEST
+  │  SHOW NO ACTIVE REQUEST
   │
   └── YES
        ↓
-     VIEW PICKUP STATUS
+     SHOW REQUEST
        ↓
-     VIEW COLLECTION PROGRESS
+     PICKUP STATUS
        ↓
-     VIEW ROUTE STATUS
+     COLLECTION PROGRESS
        ↓
-     PICKUP COMPLETED
+     ROUTE STATUS
        ↓
-     VIEW WEIGHING RESULT
+     WEIGHING RESULT
        ↓
-     VIEW PAYOUT
+     PAYOUT
 ```
-
-The phone number acts as the lookup key for retrieving supplier-related pickup information in the MVP.
 
 ---
 
-## 4. Route Aggregation Decision Flow
+# 24. Operational Flow
 
-The main operational decision occurs after pickup requests are grouped by area and schedule.
-
-```text
-PICKUP REQUESTS
-      ↓
-GROUP BY AREA + SCHEDULE
-      ↓
-CALCULATE ESTIMATED VOLUME
-      ↓
-COMPARE WITH INTERNAL THRESHOLD
-      ↓
-   ROUTE ≥ 50L?
-    /       \
-  NO         YES
-  ↓           ↓
-WAIT /      ROUTE READY
-DENSIFY        ↓
-ROUTE       SCHEDULE PICKUP
-              ↓
-          IN PROGRESS
-```
-
-The **50L threshold is an internal pilot operating threshold**, not an external industry benchmark or proven break-even point.
-
-If a route remains below the threshold, the product prioritizes additional supplier density around the existing area rather than immediately expanding to a new geographic area.
-
----
-
-## 5. Operational Flow
-
-The operational flow connects supplier requests with route execution.
+The supplier experience is connected to the operational flow:
 
 ```text
-SUPPLIER REQUEST
-      ↓
-REQUEST VALIDATION
-      ↓
-AREA + SCHEDULE GROUPING
-      ↓
-ROUTE CREATED / UPDATED
-      ↓
-ESTIMATED VOLUME CALCULATED
-      ↓
-THRESHOLD CHECK
-      ↓
+SUPPLIER
+   ↓
+CREATE REQUEST
+   ↓
+AREA + SCHEDULE
+   ↓
+AGGREGATION
+   ↓
+ROUTE THRESHOLD CHECK
+   ↓
 ROUTE READY
-      ↓
-PICKUP STARTED
-      ↓
-PICKUP COMPLETED
-      ↓
-ACTUAL VOLUME RECORDED
-      ↓
-PAYOUT CALCULATED
-      ↓
-TRANSACTION VALIDATED
-```
-
-The operational system tracks both:
-
-* **Estimated Volume** — supplier-provided volume before pickup
-* **Actual Volume** — volume recorded after weighing
-
-This distinction allows the product team to measure the gap between expected and realized supply.
-
----
-
-## 6. Pickup Request States
-
-Each pickup request follows a defined state progression.
-
-```text
-PENDING
    ↓
-SCHEDULED
+PICKUP
    ↓
-IN PROGRESS
+WEIGHING
    ↓
-COMPLETED
+PAYOUT
 ```
 
-### State Definitions
-
-| State       | Meaning                                                        |
-| ----------- | -------------------------------------------------------------- |
-| Pending     | Request has been created but pickup has not yet been scheduled |
-| Scheduled   | Request has been assigned to an area-based pickup schedule     |
-| In Progress | Pickup operation is currently being executed                   |
-| Completed   | Pickup has been completed and can proceed to weighing/payout   |
-
-A request should not be marked as completed before the pickup operation has actually been completed.
+This ensures that the product interface reflects the actual operational dependency.
 
 ---
 
-## 7. Route States
+# 25. Key Product States
 
-Routes follow a separate state model.
+The MVP has five important states:
 
-```text
-OPEN
-  ↓
-READY
-  ↓
-IN PROGRESS
-  ↓
-COMPLETED
-```
+### State 1 — Request Pending
 
-### State Definitions
+Supplier has submitted a request.
 
-| Route State | Meaning                                                                       |
-| ----------- | ----------------------------------------------------------------------------- |
-| Open        | Route is collecting suppliers and has not reached the operating threshold     |
-| Ready       | Route has reached the internal operating threshold and is ready for execution |
-| In Progress | Pickup route is being executed                                                |
-| Completed   | Route operation has been completed                                            |
+### State 2 — Aggregating
 
-The route state is determined at the route level, while pickup request status is maintained at the supplier/request level.
+The request is being combined with nearby suppliers.
 
----
+### State 3 — Route Ready
 
-## 8. Collection Progress Flow
+The aggregated route has reached the internal operating threshold.
 
-The collection progress feature makes route aggregation visible to suppliers.
+### State 4 — Pickup Completed
 
-```text
-COLLECTED VOLUME
-      ↓
-COMPARE WITH TARGET
-      ↓
-PROGRESS %
-      ↓
-ROUTE STATUS
-```
+The physical collection has been completed.
 
-Example:
+### State 5 — Paid
 
-```text
-6 L collected
-10 L target
+Actual volume has been recorded and payout has been calculated.
 
-Progress = 60%
-
-4 L remaining
-```
-
-The progress value is calculated from the current aggregated collection volume and the configured target.
-
-This allows suppliers to understand whether the area is approaching the pickup operating threshold.
+These states are designed to minimize ambiguity around the pickup process.
 
 ---
 
-## 9. Weighing & Payout Flow
+# 26. UX Principles
 
-After pickup completion, the actual collected volume is recorded.
+## 1. Show What Happens Next
 
-```text
-PICKUP COMPLETED
-      ↓
-INPUT ACTUAL VOLUME
-      ↓
-RETRIEVE ACTIVE PRICING REFERENCE
-      ↓
-CALCULATE PAYOUT
-      ↓
-VALIDATE TRANSACTION
-      ↓
-SHOW RESULT TO SUPPLIER
-```
+Every major state should provide a clear next action or status.
 
-### Payout Formula
+## 2. Separate Estimated from Actual
 
-```text
-Supplier Payout
-= Actual Volume × Supplier Payout / Liter
-```
+The product should never imply that supplier estimates are equivalent to verified weighing.
 
-Example:
+## 3. Make the Aggregation Visible
 
-```text
-Actual Volume = 8 L
-Supplier Payout = Rp5,500/L
+The supplier should understand why the pickup may need to wait for additional contributors.
 
-Payout = 8 × Rp5,500
-       = Rp44,000
-```
+## 4. Make Payout Traceable
 
-The pricing reference should include an effective date and source so that the transaction remains traceable.
+Final payout should be understandable from actual volume and payout/L.
+
+## 5. Keep the MVP Lightweight
+
+The product avoids unnecessary features such as:
+
+* complex account systems
+* marketplace functionality
+* advanced route optimization
+* real-time pricing APIs
+
+until the core aggregation model is validated.
 
 ---
 
-## 10. Key Decision Points
+# 27. Edge Cases
 
-The product contains several important decision points.
+## Case 1 — Route Does Not Reach 50L
 
-### Decision 1 — Supplier Type
+**Expected behavior:**
 
-```text
-Supplier
-  ↓
-UMKM or Household?
-```
+Keep route open and continue aggregation.
 
-The supplier type is stored because contribution patterns and route-anchoring assumptions may differ between segments.
+The product should not imply that pickup is guaranteed before the route reaches the operating condition.
 
 ---
 
-### Decision 2 — Route Threshold
+## Case 2 — Estimated Volume Is Different from Actual Volume
 
-```text
-Estimated Route Volume
-        ↓
-    ≥ 50L?
-    /    \
-  No      Yes
-  ↓        ↓
-Densify   Ready
-```
+**Expected behavior:**
 
-This is the primary operational decision gate in the MVP.
+Store both values.
+
+Use actual volume for final payout.
+
+Use the difference for operational analysis.
 
 ---
 
-### Decision 3 — Supplier Lookup
+## Case 3 — Duplicate Weighing
 
-```text
-Phone Number
-     ↓
-Supplier Found?
-   /       \
- No         Yes
- ↓           ↓
-Not Found   View Status
-```
+**Expected behavior:**
 
-This flow is used when a supplier selects **Cek Status Pickup**.
+Prevent a second weighing record for the same completed request.
 
 ---
 
-### Decision 4 — Duplicate Weighing
+## Case 4 — Supplier Cannot Be Found
 
-```text
-Weighing Request
-      ↓
-Already Recorded?
-    /       \
-  Yes        No
-  ↓           ↓
-Reject      Record
-Duplicate   Weighing
-```
+**Expected behavior:**
 
-The system should prevent the same pickup request from receiving multiple weighing records.
+Show a clear message and allow the user to create a new pickup request if appropriate.
 
 ---
 
-## 11. Exception & Edge Flows
+## Case 5 — Pricing Reference Changes
 
-The MVP should explicitly handle common operational exceptions.
+**Expected behavior:**
 
-### 11.1 Route Below Threshold
+Use the active pricing configuration applicable to the transaction.
 
-```text
-Route < 50L
-    ↓
-Keep Collection Open
-    ↓
-Invite / Add Nearby Suppliers
-    ↓
-Recalculate Route Volume
-```
-
-The route should not automatically be treated as ready only because a pickup request exists.
+Store the effective date and source for traceability.
 
 ---
 
-### 11.2 Estimated Volume Changes
+# 28. Usability Validation
 
-```text
-Supplier Updates Volume
-        ↓
-Update Request
-        ↓
-Recalculate Route Volume
-        ↓
-Update Progress
-        ↓
-Re-evaluate Threshold
-```
+The following tasks should be tested with users during MVP validation:
 
-This prevents route progress from relying on stale estimated-volume data.
+### Task 1
 
----
+Create a pickup request.
 
-### 11.3 Actual Volume Differs From Estimate
+### Task 2
 
-```text
-Estimated Volume
-       ↓
-Pickup
-       ↓
-Actual Weighing
-       ↓
-Store Actual Volume
-       ↓
-Calculate Payout From Actual Volume
-```
+Find an existing pickup request using phone number.
 
-Supplier payout is based on **actual weighed volume**, not the original estimate.
+### Task 3
+
+Understand the route collection progress.
+
+### Task 4
+
+Understand why pickup may still be waiting.
+
+### Task 5
+
+Interpret the final weighing result.
+
+### Task 6
+
+Verify how the payout was calculated.
 
 ---
 
-### 11.4 Pricing Reference Changes
+# 29. Usability Success Criteria
 
-```text
-Active Pricing Reference
-        ↓
-Retrieve Price
-        ↓
-Record Transaction
-        ↓
-Calculate Payout
-```
+Future usability validation should assess whether users can:
 
-Pricing should be stored as a configurable reference rather than hard-coded into the product logic.
+* create a request without assistance
+* identify their pickup status
+* understand route progress
+* distinguish estimated and actual volume
+* understand payout calculation
+
+Quantitative usability targets should be defined after the first usability test rather than invented before testing.
 
 ---
 
-### 11.5 Supplier Not Found
+# 30. Product Analytics Mapping
 
-If a phone number does not match an existing supplier record, the system should show a clear not-found state instead of returning an empty or misleading status page.
+Each important interaction maps to a measurable event.
 
----
+| User Action             | Event                        |
+| ----------------------- | ---------------------------- |
+| Creates pickup request  | `pickup_request_created`     |
+| Joins route             | `supplier_added_to_route`    |
+| Views progress          | `collection_progress_viewed` |
+| Route reaches threshold | `route_threshold_reached`    |
+| Pickup starts           | `pickup_started`             |
+| Pickup completes        | `pickup_completed`           |
+| Weighing recorded       | `weighing_recorded`          |
+| Payout calculated       | `payout_calculated`          |
+| Requests another pickup | `repeat_pickup_requested`    |
 
-## 12. User-Visible vs Operational States
+The most strategically important event is:
 
-Not every operational state needs to be exposed with the same level of detail.
+> **`route_threshold_reached`**
 
-| Product Area        | Supplier Visible          | Operations Visible                  |
-| ------------------- | ------------------------- | ----------------------------------- |
-| Pickup Request      | Request status            | Full request record                 |
-| Collection Progress | Collected volume / target | Supplier-level contribution         |
-| Route               | Area + progress + status  | Full route composition              |
-| Pickup              | Pickup status             | Execution status                    |
-| Weighing            | Actual volume             | Weighing record                     |
-| Payout              | Price/L + total payout    | Pricing source + transaction record |
-| Validation          | Relevant result           | Full validation details             |
-
-The supplier experience should prioritize clarity, while the operational interface should prioritize traceability and control.
-
----
-
-## 13. Flow-to-Requirement Traceability
-
-| Flow                         | Related Requirement |
-| ---------------------------- | ------------------- |
-| Create Pickup Request        | PR-001              |
-| Supplier Type & Volume Input | PR-002              |
-| Area & Schedule Selection    | PR-003              |
-| Route Aggregation            | PR-004              |
-| Route Threshold              | PR-005              |
-| Collection Progress          | PR-006              |
-| Pickup Tracking              | PR-007              |
-| Actual Weighing              | PR-008              |
-| Pricing Reference            | PR-009              |
-| Payout Calculation           | PR-010              |
-| Duplicate Prevention         | PR-011              |
-| Data Validation              | PR-012              |
-| Transaction Traceability     | PR-013              |
-
-This mapping keeps the user flow connected to the product requirements defined in the PRD.
+because it connects supplier activity to the product's core route-density hypothesis.
 
 ---
 
-## 14. UX Principles
+# 31. UX → Business Logic Connection
 
-### 14.1 Minimize Input Friction
+The product is intentionally designed so that each major user interaction supports an operational objective.
 
-Suppliers should only provide information required to initiate and track a pickup.
+| UX Interaction  | Operational Purpose               |
+| --------------- | --------------------------------- |
+| Supplier Type   | Segment supply                    |
+| Volume Input    | Estimate route volume             |
+| Area            | Geographic aggregation            |
+| Schedule        | Time-window aggregation           |
+| Progress        | Encourage/communicate aggregation |
+| Route Status    | Coordinate collection             |
+| Actual Weighing | Verify supply                     |
+| Payout          | Complete supplier transaction     |
 
-### 14.2 Make Progress Understandable
+This creates a direct connection between:
 
-Use simple indicators such as:
-
-```text
-6L / 10L
-4L remaining
-60% collected
-```
-
-instead of exposing operational calculations directly.
-
-### 14.3 Make Transaction Results Transparent
-
-The supplier should be able to see:
-
-```text
-Actual Volume
-×
-Payout per Liter
-=
-Total Payout
-```
-
-### 14.4 Separate Estimated and Actual Data
-
-Estimated volume supports route planning.
-
-Actual volume determines the final transaction.
-
-### 14.5 Make Operational States Explicit
-
-The product should clearly communicate whether a request is:
-
-**Pending → Scheduled → In Progress → Completed**
-
-and whether a route is:
-
-**Open → Ready → In Progress → Completed**
+> **User Experience → Operational Workflow → Business Validation**
 
 ---
 
-## 15. Flow Validation Criteria
+# 32. MVP Design Boundary
 
-The user flow is considered functionally valid when:
+The MVP intentionally stops at:
 
-* A supplier can create a pickup request.
-* Supplier type and estimated volume are captured.
-* The request can be associated with an area and schedule.
-* Requests can be aggregated into an area-based route.
-* Route volume can be recalculated when supplier data changes.
-* The route threshold can be evaluated.
-* Suppliers can view collection progress.
-* Pickup status can progress through defined states.
-* Actual volume can be recorded after pickup.
-* Supplier payout is calculated from actual volume.
-* Duplicate weighing records are prevented.
-* Pricing references are traceable.
-* Invalid or missing inputs generate clear validation states.
+> **Verified Collection + Supplier Payout**
 
----
+It does not attempt to manage the entire UCO downstream value chain.
 
-## 16. Product Flow Principle
+Therefore, the product does not currently include:
 
-The product flow is designed around one operational question:
+* UCO processing
+* biodiesel production
+* downstream buyer marketplace
+* advanced logistics optimization
+* automated market pricing
+* geographic expansion
 
-> **Can fragmented supplier contributions be consolidated into a sufficiently dense route before pickup is executed?**
-
-Therefore, the MVP does not treat the number of pickup requests as the primary operational outcome.
-
-The critical flow is:
-
-```text
-Fragmented Suppliers
-        ↓
-Area-Based Aggregation
-        ↓
-Route Volume
-        ↓
-Threshold Check
-        ↓
-Scheduled Pickup
-        ↓
-Actual Weighing
-        ↓
-Verified Payout
-```
-
-This flow directly connects the product experience to the core business hypothesis of improving route density before geographic expansion.
+This keeps the MVP focused on the core product hypothesis.
 
 ---
 
-## 17. Conclusion
+# 33. Evidence Integrity
 
-Jemput Jelantah's user flow connects supplier convenience with route-level operational validation.
+### [ACTUAL]
 
-The supplier experience focuses on simple collection requests, visible progress, pickup status, weighing, and payout. The operational flow focuses on aggregation, route readiness, actual volume, and transaction validation.
+Current research evidence:
 
-The MVP therefore uses the user flow not only to facilitate pickup, but also to test whether localized aggregation around existing supplier clusters can improve route density toward the internal 50L pilot threshold.
+* 15 survey respondents
+* 3 user interviews
+* 10 households
+* 5 culinary micro-UMKM
+
+### [ILLUSTRATIVE]
+
+Examples used in this document:
+
+* 8L estimated volume
+* 40L / 50L route progress
+* 8L × Rp5,500 payout example
+* example supplier and route records
+
+### [ASSUMPTION]
+
+Product assumptions requiring validation:
+
+* 50L operating threshold
+* UMKM as route anchors
+* households as route densifiers
+* scheduled aggregation improves route density
+
+No illustrative number in this document should be interpreted as an actual operational result.
+
+---
+
+# 34. Final User Experience Principle
+
+The core user experience can be summarized as:
+
+> **"I contribute my UCO, know when it will be collected, see whether my area has enough supply, and understand exactly how my final payout is calculated."**
+
+The product should make the aggregation process visible while keeping the supplier journey simple.
